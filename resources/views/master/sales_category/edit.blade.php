@@ -1,0 +1,32 @@
+<form class="form-horizontal" id="formUpdate">
+   {{ csrf_field() }}
+   <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+      <span aria-hidden="true">&times;</span>
+   </button>
+   <div class="card-body">
+      <h5 class="modal-title">{{ $title ?? '' }}</h5>
+      <div class="form-group row">
+         <label for="name" class="col-sm-2 col-form-label">Nama Kategori</label>
+         <div class="col-sm-4">
+            <input type="text" class="form-control" id="name" placeholder="Nama Kategori"  value="{{ $data->name }}">
+         </div>
+         <label for="mark_up" class="col-sm-2 col-form-label ">Mark Up  <span class="text-teal">(%)</span></label>
+         <div class="col-sm-4">
+            <input type="text" class="form-control uang" id="mark_up" placeholder="Mark Up" value="{{ $data->mark_up }}">
+         </div>
+      </div>147258
+      <div class="form-group row">
+         <label for="status" class="col-sm-2 col-form-label">Status</label>
+         <div class="col-sm-4">
+            <input type="checkbox" name="status" class="switchBs" id="status" value={{ $data->status }}
+            @if($data->status)checked @endif data-bootstrap-switch data-off-color="danger" data-on-color="success">
+         </div>
+      </div>
+
+   </div>
+   <hr>
+   <div class="row justify-content-between">
+      <button type="button" class="btn btn-default" data-dismiss="modal">Tutup</button>
+      <button type="button" class="btn btn-primary" id="updateButton" data-id="{{ $data->id }}">Perbaharui</button>
+   </div>
+</form>

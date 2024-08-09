@@ -1,0 +1,45 @@
+/*
+    Give the service worker access to Firebase Messaging.
+    Note that you can only use Firebase Messaging here, other Firebase libraries are not available in the service worker.
+    */
+    importScripts('https://www.gstatic.com/firebasejs/7.23.0/firebase-app.js');
+    importScripts('https://www.gstatic.com/firebasejs/7.23.0/firebase-messaging.js');
+    
+    // import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.11/firebase-app.js";
+    // import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.6.11/firebase-analytics.js";
+    
+    /*
+    Initialize the Firebase app in the service worker by passing in the messagingSenderId.
+    * New configuration for app@pulseservice.com
+    */
+    initializeApp({
+        apiKey: "AIzaSyCulO2IJ7xL3Rg3AWm29wQZZdGIre2q4fM",
+        authDomain: "glo-pos.firebaseapp.com",
+        projectId: "glo-pos",
+        storageBucket: "glo-pos.appspot.com",
+        messagingSenderId: "505224913463",
+        appId: "1:505224913463:web:ff555ac651c28b644395b2",
+        measurementId: "G-LFT7YFVV4B"
+    });
+    
+    /*
+    Retrieve an instance of Firebase Messaging so that it can handle background messages.
+    */
+    const messaging = messaging();
+    messaging.setBackgroundMessageHandler(function(payload) {
+      console.log(
+        "[firebase-messaging-sw.js] Received background message ",
+        payload,
+      );
+      /* Customize notification here */
+      const notificationTitle = "Background Message Title";
+      const notificationOptions = {
+        body: "Background Message body.",
+        icon: "/itwonders-web-logo.png",
+      };
+    
+      return self.registration.showNotification(
+        notificationTitle,
+        notificationOptions,
+      );
+    });

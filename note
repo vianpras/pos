@@ -1,0 +1,109 @@
+
+-- user - done
+-- laporan pembelian ---x
+-- laporan penjualan ---x
+
+
+-- pengaturan 
+-- pemilik seperti ranacamira
+-- logo
+-- HANDLING TOMBOL BAYAR, SAVE, UPDATE BUAT DISABLE BUTTON SEBELUM hide, ENABLE BUTTON SETELAH SEND 
+-- $('button').attr("disabled", true);
+
+-- aplikasi
+-- - total meja {integer}
+-- - popup otorisasi {boolean}
+-- - modul stok {boolean}
+-- - kas terpisah pembelian dan penjualan { boolean}
+-- - struk dengan logo
+-- - footer print out
+-- - notifikasi / user
+-- - default lef menu bar / user
+frontend JS 
+simpan collapse sidebar menu state
+aktifkan notifikasi
+log aktifitas user -- done
+buat service background sent FM
+buat helper sent fcm
+
+tutup kas masuk dan keluar
+wizard untuk konfigurasi
+-- kasih form bayar berapa
+-- kasih pilihan tunai(buka form bayar), kartu debit/kredit, e wallet (opsi 2 dan 3 form bayar read only)
+
+-- 2022 02 24
+-- edit POS dengan inputan by code jika status pending ?  lnjut : otorisasi  -- x
+
+
+
+-- jika tbutton simpan maka store table keranjang dan keranjang_detail, -x
+-- alur secara jelas metode cart
+-- jika bayar maka store table sales dan sales deatail -x
+
+-- jika meja dipilih dan data keranjang ada maka tampilkan jika tidak maka data baru XX--NOTE
+-- -- tidak usah konfirm swalalert
+-- -- ketika setiap ada update data dia ngesave cart
+-- laporan pjualan(global, per nota, per item) ---x
+-- laporan pembelian(global, per note, per item) ---x
+-- membership detail, kedatangan dan qty paketnya berkurang
+-- cetak nota
+-- notifikasi - sales order, membership order , membership registration, membership top up
+-- tampilan / menu order list untuk dapur
+-- 
+## tutorial save ke git
+buka terminal
+cd /var/www/glo.pos 
+git add .
+git commit -m "komentar updatenya apa"
+git push
+
+##note dari mas vian
+
+versi Pos 22.01
+
+--Tanggal 29-04-2022
+1. Order Penjualan 
+    - Bayar dihapus diganti simpan aja  -- hanya teks saja atau fungsinya alurnya berubah? karena jika data sudah pernah di bayar maka tombol berubah menjadi simpan
+     --dibuat otorissi pisah dengan order dan kasir
+    - Untuk daftar item dibuat 2 format yang pertama menampilkan beserta gambar
+      yang kedua tampa gambar buat tampilan per baris 1 item di datatable -- DONE -- jika opsi pakai gambar dan tidak pakai gambar bisa konfigurasi dipengaturan aplikasi namun baris tetap sama
+2. Transaksi Penjualan (Kasir)
+    - Ketika disimpan data di datatable di hilangkan -- tidak jelas poiint 1a
+    - Ditambahkan kategori jenis penjualan (Shopee, Gojek, Umum), karena setiap kategori harganya -- koreksi -- buat kolom harga masing2 platform
+        berbeda-beda 
+        -- tambahkan opsi persentase mark up jika penjualan sesuai dengan kategori , --done
+        -- nilai di simpan di table baru sales_categories , berisi list mark up per kategory pembayaran --DONE
+        -- tambahkan juga pada table sales header bayar dan kembali, metode pembayran --DONE
+    - Tambahkan No Order Penjualan fungsi dapat mencari,mengambil dan menampilkan data dari 
+        Order Penjualan -- bisa pakai form kode --DONE
+    - Form ini dapat langsung melakukan pembayaran kasir / penjualan tanpa harus 
+        dari order penjualan -- DONE
+3.  Print Out kasir
+    - tanggal yg ada di bawah di tampilin di sebelah no nota aja --DONE
+    - dibawah tulisan terima kasir dihapus aja -- itu footer bisa di atur di pengaturan aplikasi --DONE
+4. Master item
+    - Gambar tidak harus di isi, meskipun tanpa gambar bisa di simpan -- done
+    - Tidak perlu harga beli dan harga jual -- ikut point 8
+6. Transaksi pembelian
+    - Ditampilkan harga beli
+    - Tambahkan No Order pembelian fungsi dapat mencari,mengambil dan menampilkan data dari 
+        Order pembelian -- sudah ada di form kode --DONE
+    - Form ini dapat langsung melakukan pembayaran kasir / pembelian tanpa harus 
+        dari order pembelian --tidak jelas
+    
+TAMBAHAN
+7. Form Pesanan -- design ui done
+    - Form ini berfungsi sebagai menampilan hasil dari order penjualan untuk divisi dapur,
+        untuk mengetahui menu apa aja yang harus di siapkan atau di masak 
+        -- buat tampilan full page dengan card per no nota # dibawahnya detail order itemmnya 
+        -- buat checklist jia sudah selsai
+        -- buat print out order sama seperti cetak nota
+        -- buat database untuk checklist order -- tambahkan kolom served type bool jika 1 maka telah di served
+8. Tambahan Setup Profit & Margin
+    - Form ini digunakan untuk memasukan harga jual, keuntungan dari prosentase, keuntungan dari
+        berapa yang mau diambil "Nominal"
+        --tambahkan form profit dan margin
+        -- harga jual dan beli di hapus hanya harga pokok dan presentase . 
+
+9. UI #
+    -- buat upload image dengan croping 1:1
