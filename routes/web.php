@@ -105,6 +105,9 @@ Route::middleware(['auth'])->group(function () {
         // .Item 
 
         // Master Items
+        Route::get('item/select', 'MasterItemController@listItem')->name('master.item.list.selected');
+        Route::post('item/pricing', 'MasterItemController@itemPriceByCode')->name('master.item.pricing'); // datatable master item
+
         Route::get('item', 'MasterItemController@index')->name('item'); // index master item
         Route::post('item/datatable', 'MasterItemController@datatable')->name('master.item.datatable'); // datatable master item
         Route::get('item/create', 'MasterItemController@create')->name('master.item.new'); // datatable master item

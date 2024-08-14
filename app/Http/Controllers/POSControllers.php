@@ -169,16 +169,8 @@ class POSControllers extends Controller
             //     ])
             //     ->get();
 
-            $items = DB::table('master_items')
-                    ->select([
-                        'master_items.id as id',
-                        'master_items.kode_item as code',
-                        'master_items.nama_item as name',
-                        'master_items.sell_price as sell_price'
-                    ])
-                    ->where('master_items.tipe', 'Item Jadi')
-                    ->where('master_items.status', '1')
-                    ->get();
+            $items = DB::table('SAPOITM')->get();
+            $pricelist = DB::table('SAPOPLN')->get();
                     
             $var = [
                 'nav' => 'salesCreate',
@@ -187,11 +179,12 @@ class POSControllers extends Controller
                 'categories' => $category,
                 'salesCategories' => $salesCategory,
                 'items' => $items,
+                'pricelist' => $pricelist,
                 'bahan_baku' => $bahan_baku,
                 'cart' => $checkCart,
                 'getTotalCart' => $getTotalCart
             ];
-            return view('sales.create1', $var);
+            return view('sales.create', $var);
         } else {
             $result = config('global.errors.E002');
         }

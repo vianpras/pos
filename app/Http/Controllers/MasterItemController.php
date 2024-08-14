@@ -246,4 +246,31 @@ class MasterItemController extends Controller
 
         return response()->json($data);
     }
+
+    function listItem(){
+        $items = DB::table('SAPOITM')->get();
+        $var = [
+            'nav'       => 'data-induk', 
+            'subNav'    => 'item', 
+            'title'     => 'Tambah Item', 
+            'items'     => $items
+        ];
+
+        return view('sales.listItem', $var);
+    }
+
+    function itemPriceByCode(Request $request){
+        $itemcode = $request->itemcode;
+        $qty = $request->qty;
+        $listnum = ($request->pricelist != "") ? $request->pricelist : 1;
+
+        $pricelist = DB::table('SAPOPLN')->get();
+        $itemprice = DB::table('SAPITM1')->where('itemcode', $itemcode)->where('pricelist', $listnum)->first();
+
+        $var = [
+            'pricelist' => $pricelist,
+            'itemprice' => $itemprice
+        ];
+        return response()->json($var);
+    }
 }

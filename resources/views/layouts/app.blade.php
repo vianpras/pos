@@ -53,7 +53,7 @@
 
 {{-- <body class="hold-transition dark-mode sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed"> --}}
 
-<body class="layout-fixed layout-navbar-fixed layout-footer-fixed sidebar-mini-xs text-sm @if ($nav == 'booking' || $nav == 'sales' || $nav == 'purchases') sidebar-collapse @endif">
+<body class="layout-fixed layout-navbar-fixed layout-footer-fixed sidebar-mini-xs text-sm sidebar-collapse">
     <div id="loader" class="lds-dual-ring hidden overlay"></div>
     <div class="wrapper">
 
@@ -604,7 +604,7 @@
     <script>
         $(function() {
             $('.select2').select2({
-                // theme: 'bootstrap4'
+                theme: 'bootstrap4'
             });
             $("input[data-bootstrap-switch]").each(function() {
                 // $(this).bootstrapSwitch('state', $(this).prop('checked'));
