@@ -117,7 +117,7 @@
                                     <table class="table table-sm mt-2">
                                         <thead>
                                             <tr>
-                                                <th width="22%">Item Info</th>
+                                                <th width="18%">Item Info</th>
                                                 <th>Token Remarks</th>
                                                 <th width="5.7%">Cart</th>
                                                 <th width="5.7%">Actual</th>
@@ -195,7 +195,7 @@
                     </dl>
                     <div class="item-group mb-3">
                         <label for="qty_modal">Qty</label>
-                        <input class="form-control" type="number" id="qty" value="0" onchange="itemPricing('`+itemcode+`', this.value, '')" style="width: 100px;">
+                        <input class="form-control" type="number" id="qty_modal" value="0" onchange="itemPricing('`+itemcode+`', this.value, '')" style="width: 100px;">
                     </div>
                     <div class="item-group mb-3">
                         <label for="pricelist_modal">Price List</label>
@@ -232,13 +232,18 @@
             },
             success: function(result) {
                 console.log(result);
-                $("#price_modal").html(maskRupiah("", result.itemprice.price));
-                $("#price_modal_input").val(result.itemprice.price);
+                if(result.itemprice){
+                    $("#price_modal").html(maskRupiah("", result.itemprice.price));
+                    $("#price_modal_input").val(result.itemprice.price);
 
-                $('#pricelist_modal').html("");
-                $.each(result.pricelist, function (i, elem) {
-                    $('#pricelist_modal').append(`<option value="`+elem.listnum+`" `+ ((result.itemprice.pricelist == elem.listnum) ? `selected` : ``) +`>`+elem.listname+`</option>`);
-                });
+                    $('#pricelist_modal').html("");
+                    $.each(result.pricelist, function (i, elem) {
+                        $('#pricelist_modal').append(`<option value="`+elem.listnum+`" `+ ((result.itemprice.pricelist == elem.listnum) ? `selected` : ``) +`>`+elem.listname+`</option>`);
+                    });
+                } else {
+                    $("#price_modal").html(maskRupiah("", 0));
+                    $("#price_modal_input").val(0);                    
+                }
             },
             error: function(jqXHR, testStatus, error) {
                 popToast('error', 'E999 - Terjadi Kesalah Komunikasi Server');
@@ -254,12 +259,11 @@
     }
 
     const addItem = () => {
-        $('#modalBlade').modal("hide");
-        $("#item-details-price").html("");
-
         let itemcode = $('#itemcode_modal').val();
         let itemname = $('#itemname_modal').val();
         let pricelist = "{{ $pricelist }}";
+        let price = $('#price_modal_input').val();
+        let qty = $('#qty_modal').val();
         
         var output = [];
         $.each(JSON.parse(pricelist.replace(/&quot;/g,'"')), function(key, value){
@@ -271,16 +275,16 @@
                 <td class="align-middle">
                     <input class="form-control form-control-sm" type="hidden" name="itemcode">
                     <dt>`+itemcode+`</dt>
-                    <dd>`+itemname+`</dd>
+                    <dd style="width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">`+itemname+`</dd>
                 </td>
                 <td class="align-middle">
                     <input class="form-control form-control-sm" type="text" name="token_remarks">
                 </td>
                 <td class="align-middle">
-                    <input class="form-control form-control-sm" type="number" name="cart" value="0" readonly>
+                    <input class="form-control form-control-sm" type="number" name="cart" value="`+qty+`" readonly>
                 </td>
                 <td class="align-middle">
-                    <input class="form-control form-control-sm" type="number" name="actual" value="0">
+                    <input class="form-control form-control-sm" type="number" name="actual" value="`+qty+`">
                 </td>
                 <td class="align-middle">
                     <select class="form-control form-control-sm" name="price_list" id="price_list" style="appearance: none;">
@@ -288,7 +292,8 @@
                     </select>
                 </td>
                 <td class="align-middle">
-                    <input class="form-control form-control-sm" type="text" name="price" value="0">
+                    <input class="form-control form-control-sm" type="hidden" name="price" value="`+price+`" readonly>
+                    `+maskRupiah("", price)+`
                 </td>
                 <td class="align-middle">
                     <input class="form-control form-control-sm" type="text" name="price_status" value="0">
@@ -305,8 +310,11 @@
                 <td class="align-middle">
                     <input class="form-control form-control-sm" type="text" name="final_disc" value="0">
                 </td>
-            </tr>=
+            </tr>
         `);
+
+        $('#modalBlade').modal("hide");
+        $("#item-details-price").html("");
     }
 
     var dTable = $('#dTable1').dataTable({
