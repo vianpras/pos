@@ -29,32 +29,8 @@
             <p>Dashboard</p>
           </a>
         </li>
-
-        {{-- Pembelian --}}
-        @if (Helper::checkACL('purchase', 'r'))
-        <li class="nav-header">Pembelian</li>
-        @endif
-        @if (Helper::checkACL('purchase_order', 'r'))
-        <li class="nav-item">
-          <a href="/purchase" class="nav-link @if($nav == 'purchasesIndex') active text-bold @endif">
-            <i class="nav-icon fas fa-shopping-basket"></i>
-            <p>Order Pembelian</p>
-          </a>
-        </li>
-        @endif
-        {{-- @if (Helper::checkACL('transaction_purchase', 'r'))
-        <li class="nav-item">
-          <a href="/purchase" class="nav-link @if($nav == 'purchases') active text-bold @endif">
-            <i class="nav-icon fas fa-file-medical"></i>
-            <p>Transaksi Pembelian</p>
-            {!!Helper::counterData('purchases','pending')!!}
-
-          </a>
-        </li>
-        @endif --}}
-        {{-- Penjualan --}}
         @if (Helper::checkACL('sales', 'c'))
-        <li class="nav-header">Penjualan</li>
+          <li class="nav-header">Penjualan</li>
         @endif
         @if (Helper::checkACL('sales_order', 'r'))
         <li class="nav-item">
@@ -62,143 +38,6 @@
             <i class="nav-icon fas fa-cash-register"></i>
             <p>Kasir</p>
           </a>
-        </li>
-        @endif
-        {{-- @if (Helper::checkACL('transaction_sales', 'r'))
-        <li class="nav-item">
-          <a href="/sales" class="nav-link @if($nav == 'sales') active text-bold @endif">
-            <i class="nav-icon fas fa-file-invoice-dollar"></i>
-            <p>Transaksi Penjualan</p>
-            {!!Helper::counterData('sales','pending')!!}
-          </a>
-        </li>
-        @endif --}}
-
-        {{-- Kas Masuk / Keluar --}}
-        @if (Helper::checkACL('sales', 'c'))
-        <li class="nav-header">Kas</li>
-        @endif
-        @if (Helper::checkACL('cash_in', 'r'))
-        <li class="nav-item">
-          <a href="/cash/cash_bank" class="nav-link @if($nav == 'cashBank') active text-bold @endif">
-            <i class="nav-icon fas fa-university"></i>
-            <p>Kas & Bank </p>
-          </a>
-        </li>
-        @endif
-        @if (Helper::checkACL('cash_in', 'r'))
-        <li class="nav-item">
-          <a href="/cash/in" class="nav-link @if($nav == 'cashIn') active text-bold @endif">
-            <i class="nav-icon fas fa-money-bill-alt"></i>
-            <p>Kas Masuk </p>
-          </a>
-        </li>
-        @endif
-
-        @if (Helper::checkACL('cash_out', 'r'))
-        <li class="nav-item">
-          <a href="/cash/out" class="nav-link @if($nav == 'cashOut') active text-bold @endif">
-            <i class="nav-icon  fas fa-money-bill-wave"></i>
-            <p>Kas Keluar </p>
-          </a>
-        </li>
-        @endif
-        
-        @if (Helper::checkACL('cash_recap', 'r'))
-        <li class="nav-item">
-          <a href="/cash/recap" class="nav-link @if($nav == 'cashRecap') active text-bold @endif">
-            <i class="nav-icon fas fa-file-invoice-dollar"></i>
-            <p>Rekap Kas </p>
-          </a>
-        </li>
-        @endif
-
-        @if ((Helper::checkACL('membership', 'r')) || (Helper::checkACL('booking', 'r')) )
-          <li class="nav-header">Fitur</li>
-          @if (Helper::checkACL('membership', 'r'))
-          <li class="nav-item">
-            <a href="/keanggotaan" class="nav-link @if($nav == 'membership') active text-bold @endif">
-              <i class="fas fa-id-card-alt nav-icon"></i>
-              <p>Keanggotaan</p>
-            </a>
-          </li>
-          @endif
-          {{-- @if (Helper::checkACL('booking', 'r'))
-          <li class="nav-item">
-            <a href="/booking" class="nav-link @if($nav == 'booking') active text-bold @endif">
-              <i class="nav-icon fas fa-book-open"></i>
-              <p>Pemesanan</p>
-              {!!Helper::counterData('bookings','pending')!!}
-            </a>
-          </li>
-          @endif --}}
-          @if (Helper::checkACL('jurnal_umum', 'r'))
-          <li class="nav-item">
-            <a href="/jurnal" class="nav-link @if($nav == 'jurnal_umum') active text-bold @endif">
-              <i class="nav-icon fas fa-book"></i>
-              <p>Jurnal Umum</p>
-            </a>
-          </li>
-          @endif
-        @endif
-
-        {{-- Report --}}
-        @if ((Helper::checkACL('purchase_report', 'r')) || (Helper::checkACL('sales_report', 'r')) || (Helper::checkACL('overall_report', 'r')))
-        <li class="nav-header">Laporan</li>
-        <li class="nav-item @if($nav == 'report') menu-open @endif">
-          <a href="#" class="nav-link @if($nav == 'report') active text-bold @endif">
-            <i class="nav-icon fas fa-chart-pie"></i>
-            <p class="text-capitalize">
-              Laporan
-              <i class="right fas fa-angle-left"></i>
-            </p>
-          </a>
-          <ul class="nav nav-treeview">
-            @if (Helper::checkACL('purchase_report', 'r'))
-            <li class="nav-item">
-              <a href="/purchaseReport" class="nav-link @if($subNav == 'purchase_report') active text-bold @endif">
-                <i class="fas fa-file-import nav-icon"></i>
-                <p class="text-capitalize">Laporan Pembelian</p>
-              </a>
-            </li>
-            @endif
-
-            @if (Helper::checkACL('sales_report', 'r'))
-            <li class="nav-item">
-              <a href="/salesReport" class="nav-link @if($subNav == 'sales_report') active text-bold @endif">
-                <i class="fas fa-file-export nav-icon"></i>
-                <p class="text-capitalize">Laporan Penjualan</p>
-              </a>
-            </li>
-            @endif
-
-            @if (Helper::checkACL('sales_report', 'r'))
-            <li class="nav-item">
-              <a href="/kasirReport" class="nav-link @if($subNav == 'kasir_report') active text-bold @endif">
-                <i class="fas fa-file-export nav-icon"></i>
-                <p class="text-capitalize">Laporan Penjualan Kasir</p>
-              </a>
-            </li>
-            @endif
-
-            @if (Helper::checkACL('sales_report', 'r'))
-            <li class="nav-item">
-              <a href="/salesReport/pendapatan" class="nav-link @if($subNav == 'pendapatan_sales_report') active text-bold @endif">
-                <i class="fas fa-file-export nav-icon"></i>
-                <p class="text-capitalize">Laporan Pendapatan Penjualan</p>
-              </a>
-            </li>
-            @endif
-
-            @if (Helper::checkACL('overall_report', 'r'))
-            <li class="nav-item">
-              <a href="/proyek" class="nav-link @if($subNav == 'proyek') active text-bold @endif">
-                <i class="fas fa-file-contract nav-icon"></i>
-                <p class="text-capitalize">Laporan Keseluruhan</p>
-              </a>
-            </li>
-            @endif
-          </ul>
         </li>
         @endif
 
@@ -214,7 +53,6 @@
             </p>
           </a>
           <ul class="nav nav-treeview">
-
             @if (Helper::checkACL('company', 'r'))
             <li class="nav-item">
               <a href="/dataInduk/perusahaan" class="nav-link @if($subNav == 'company') active text-bold @endif">
@@ -223,14 +61,14 @@
               </a>
             </li>
             @endif
-            {{-- @if (Helper::checkACL('master_docPrefix', 'xx'))
+
             <li class="nav-item">
               <a href="/dataInduk/docPrefix" class="nav-link @if($subNav == 'docPrefix') active text-bold @endif">
                 <i class="fab fa-autoprefixer nav-icon"></i>
                 <p class="text-capitalize">docPrefix</p>
               </a>
             </li>
-            @endif --}}
+
             @if (Helper::checkACL('master_acl', 'r'))
             <li class="nav-item">
               <a href="/dataInduk/acl" class="nav-link @if($subNav == 'hakakses') active text-bold @endif">

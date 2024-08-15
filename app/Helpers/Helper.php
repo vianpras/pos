@@ -24,15 +24,16 @@ class Helper
    }
    public static function LoginAction($id, $action)
    {
-      if ($action == 'success') {
-         $pdo = DB::getPdo();
-         $query = 'UPDATE users SET last_login=NOW(), failed_login=0 WHERE id=:id';
-         $stmt = $pdo->prepare($query);
+      if($action == 'success') {
+         $pdo     = DB::getPdo();
+         $query   = 'UPDATE users SET last_login=NOW(), failed_login=0 WHERE id=:id';
+         $stmt    = $pdo->prepare($query);
+
          $stmt->bindValue(':id', $id);
          $stmt->execute();
          $pdo = null;
          return;
-      } elseif ($action == 'failed') {
+      }elseif($action == 'failed') {
          // set failed_login = +1
          $pdo = DB::getPdo();
          $query = 'UPDATE users SET failed_login=failed_login+1 WHERE id=:id';
@@ -66,7 +67,6 @@ class Helper
             $stmt = $pdo->prepare($query);
             $stmt->bindValue(':mobile', $user);
          }
-
          if ($type == "username") {
             $query = 'SELECT id,username,name,mobile,status,password FROM users WHERE username=:username';
             $stmt = $pdo->prepare($query);

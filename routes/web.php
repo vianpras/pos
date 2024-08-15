@@ -106,18 +106,12 @@ Route::middleware(['auth'])->group(function () {
 
         // Master Items
         Route::get('item/select', 'MasterItemController@listItem')->name('master.item.list.selected');
-        Route::post('item/pricing', 'MasterItemController@itemPriceByCode')->name('master.item.pricing'); // datatable master item
-
-        Route::get('item', 'MasterItemController@index')->name('item'); // index master item
-        Route::post('item/datatable', 'MasterItemController@datatable')->name('master.item.datatable'); // datatable master item
-        Route::get('item/create', 'MasterItemController@create')->name('master.item.new'); // datatable master item
-        Route::post('item/store', 'MasterItemController@store')->name('master.item.store'); //post save master item
-        Route::get('item/edit/{id}', 'MasterItemController@edit')->name('master.item.edit'); //page edit
-        Route::post('item/update/{id}', 'MasterItemController@update')->name('master.item.update'); //post update item
-        Route::post('item/disable/', 'MasterItemController@disable')->name('disableMasterItem'); //post disable item
-        Route::post('item/details', 'MasterItemController@dataDetails'); //post disable item
-        Route::post('item/by_tipe', 'MasterItemController@itemByTipe'); //post disable item
+        Route::post('item/pricing', 'MasterItemController@itemPriceByCode')->name('master.item.pricing');
         // .Master Items
+
+        // Master Customer
+        Route::post('customer/get_by_code', 'CustomerControllers@custByCode')->name('master.customer.bycode');
+        // .Master Customer
 
         // Company 
         Route::get('perusahaan', 'CompanyControllers@index')->name('company'); // index company
@@ -235,6 +229,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('sales/print/{code}/', 'POSControllers@printSales')->name('printSales'); //
     Route::get('sales/print/sementara/{table}/', 'POSControllers@printSementara')->name('printSalesSementara'); //
     Route::get('sales/order/{code}/', 'POSControllers@printOrder')->name('printOrder'); //
+    Route::get('sales/payment_method/', 'POSControllers@paymentMethod')->name('sales.paymentMethod'); //
     // .pos 
 
     // purchase 

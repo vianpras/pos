@@ -131,70 +131,41 @@ class POSControllers extends Controller
     public function create()
     {
         if (Helper::checkACL('sales', 'c')) {
-            $category = DB::table('categories')->select('code', 'name', 'id')->where('parent', '2')->get();
-            $salesCategory = DB::table('sales_categories')->select('id', 'name')->orderBy('id','asc')->where('status', '1')->get();
-            $getTotalCart = DB::table('configurations')->select('total_cart')->first();
-            if (is_null($getTotalCart)) {
-                session()->flash('notifikasi', [
-                    "icon" => config('global.errors.E018.status'),
-                    "title" => config('global.errors.E018.code'),
-                    "message" => config('global.errors.E018.message'),
-                ]);
-                return redirect('/dataInduk/perusahaan');
-            }else{
-                $getTotalCart = $getTotalCart->total_cart;
-            }
-            $bahan_baku = DB::table('master_items')->where('tipe', 'Bahan Baku')->get();
-            $parentCategory = DB::table('categories')->select('id')->where('code', 'SO')->first();
-            $getSalesCategory = DB::table('sales_categories')->select('mark_up')->where('name','Umum')->first();
-            is_null($getSalesCategory) ? $markUp = 0 : $markUp = $getSalesCategory->mark_up;
-            
-            // ambil cart kosong
-            $checkCart = Helper::checkCart();
-            // $items = DB::table('items')
-            //     ->join('categories', 'categories.id', '=', 'items.category_id')
-            //     ->select([
-            //         'items.id as id',
-            //         'items.code as code',
-            //         'items.name as name',
-            //         // 'items.sell_price as sell_price',
-            //         'items.category_id as category_id',
-            //         'categories.name as category_name',
-            //     ])
-            //     ->selectRaw('TRIM(items.sell_price + (items.sell_price * ('.$markUp.'/100)))+0 as sell_price')
-            //     ->Where([
-            //         // ['items.status', '-1'], //di matikan karna ada tambahan biaya untuk aktegori penjualan, bisa di request di AJAX pakai fungsi getITEM di bawah
-            //         ['items.status', '1'], //di matikan karna ada tambahan biaya untuk aktegori penjualan, bisa di request di AJAX pakai fungsi getITEM di bawah
-            //         ['categories.parent', $parentCategory->id],
-            //     ])
-            //     ->get();
-
-            $items = DB::table('SAPOITM')->get();
-            $pricelist = DB::table('SAPOPLN')->get();
+            $items      = DB::table('SAPOITM')->get();
+            $pricelist  = DB::table('SAPOPLN')->get();
+            $customer   = DB::table('SAPOCRD')->select('SAPOCRD.*', DB::raw('RIGHT(SAPOCRD.phone, 4) AS phoneCode'))->get();
                     
             $var = [
-                'nav' => 'salesCreate',
-                'subNav' => 'sales',
-                'title' => 'Tambah Order Penjualan',
-                'categories' => $category,
-                'salesCategories' => $salesCategory,
-                'items' => $items,
+                'nav'       => 'salesCreate',
+                'subNav'    => 'sales',
+                'title'     => 'Tambah Order Penjualan',
+                'items'     => $items,
                 'pricelist' => $pricelist,
-                'bahan_baku' => $bahan_baku,
-                'cart' => $checkCart,
-                'getTotalCart' => $getTotalCart
+                'customer'  => $customer
             ];
+
             return view('sales.create', $var);
         } else {
             $result = config('global.errors.E002');
         }
 
         session()->flash('notifikasi', [
-            "icon" => config('global.errors.E002.status'),
-            "title" => config('global.errors.E002.code'),
-            "message" => config('global.errors.E002.message'),
+            "icon"      => config('global.errors.E002.status'),
+            "title"     => config('global.errors.E002.code'),
+            "message"   => config('global.errors.E002.message'),
         ]);
+
         return redirect('dashboard');
+    }
+
+    public function paymentMethod()
+    {
+        $paymentMethod = DB::table('SAPTPAYMENT')->get();
+
+        $var = [
+            'paymentMethod' => $paymentMethod
+        ];
+        return response()->json($var);
     }
 
     /**

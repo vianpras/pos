@@ -10,7 +10,6 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="-1" />
     <title>{{ $title ?? '' }}</title>
-
     {{-- Favicon --}}
     <link rel="icon" type="image/png" href="/dist/img/favicon.png" />
     <!-- Google Font: Source Sans Pro -->
@@ -43,15 +42,11 @@
     <link rel="stylesheet" href="/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
     <link rel="stylesheet" href="/plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
     <link rel="stylesheet" href="/plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
-    {{-- select2 --}}
-    {{-- <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" /> --}}
+    <!-- Select2 -->
     <link rel="stylesheet" href="/plugins/select2/css/select2.css">
-
     <link rel="stylesheet" href="/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css">
     <link rel="stylesheet" href="/dist/css/custom.css">
 </head>
-
-{{-- <body class="hold-transition dark-mode sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed"> --}}
 
 <body class="layout-fixed layout-navbar-fixed layout-footer-fixed sidebar-mini-xs text-sm sidebar-collapse">
     <div id="loader" class="lds-dual-ring hidden overlay"></div>
@@ -65,68 +60,28 @@
         @endif
 
         <!-- Navbar -->
-        {{-- <nav class="main-header navbar navbar-expand navbar-white navbar-light"> --}}
         <nav class="main-header navbar navbar-expand navbar-dark" style="background-color: #0A6EBD; border:none;">
-
             <!-- Left navbar links -->
             <ul class="navbar-nav">
                 <li class="nav-item" id="menu-icon">
                     <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/iframe" role="button">
-                        <i class="fas fa-table "></i>
-                        {{-- iFrame --}}
-                    </a>
-                </li>
-                <li class="nav-item">
                     <a class="nav-link" data-widget="fullscreen" id="setFullscreen" href="#" role="button">
                         <i class="fas fa-expand-arrows-alt "></i>
-                        {{-- Full Screen --}}
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="#" onclick="window.location.reload(true);" role="button">
                         <i class="fas fa-sync-alt"></i>
-                        {{-- hReload --}}
                     </a>
                 </li>
             </ul>
-
             <!-- Right navbar links -->
             <ul class="navbar-nav ml-auto">
-                {{-- real time --}}
                 <li class="d-none d-md-block">
                     <span class="liveDateTime nav-link" id="liveDateTime"></span>
                 </li>
-                <!-- Notifications Dropdown Menu -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link" data-toggle="dropdown" href="#">
-                        <i class="far fa-bell"></i>
-                        <span class="badge badge-warning navbar-badge">15</span>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-                        <span class="dropdown-item dropdown-header">15 Notifications</span>
-                        <div class="dropdown-divider"></div>
-                        <a href="#" class="dropdown-item">
-                            <i class="fas fa-envelope mr-2"></i> 4 new messages
-                            <span class="float-right text-muted text-sm">3 mins</span>
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a href="#" class="dropdown-item">
-                            <i class="fas fa-users mr-2"></i> 8 friend requests
-                            <span class="float-right text-muted text-sm">12 hours</span>
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a href="#" class="dropdown-item">
-                            <i class="fas fa-file mr-2"></i> 3 new reports
-                            <span class="float-right text-muted text-sm">2 days</span>
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a href="#" class="dropdown-item dropdown-footer">See All Notifications</a>
-                    </div>
-                </li>
-
                 <li class="nav-item">
                     <a class="nav-link" href="/logout" role="button">
                         <i class="fas fa-sign-out-alt"></i>
@@ -252,73 +207,32 @@
                     <b>Version</b> {{ config('app.version') }}
                 </div>
             </footer>
-        @else
-            {{-- list category --}}
-            {{-- <footer class="main-footer m-0 p-0">
-               <div class="scrollXMenu p-1">
-                  <div class="d-flex justify-content-start">
-                     <div class="m-1 p-1 col-sm-2 col-md-2 col-xs-4 ">
-                        <button type="button" class="btn bg-olive " id="Popular">Popular</button>
-                     </div>
-                     <div class="m-1 p-1 col-sm-2 col-md-2 col-xs-4 ">
-                        <button type="button" class="btn bg-olive " id="Minuman">Minuman</button>
-                     </div>
-                     <div class="m-1 p-1 col-sm-2 col-md-2 col-xs-4 ">
-                        <button type="button" class="btn bg-olive " id="Minuman">Minuman</button>
-                     </div>
-                     <div class="m-1 p-1 col-sm-2 col-md-2 col-xs-4">
-                        <button type="button" class="btn bg-olive " id="Dessert">Dessert</button>
-                     </div>
-                     <div class="m-1 p-1 col-sm-2 col-md-2 col-xs-4">
-                        <button type="button" class="btn bg-olive " id="Snack">Snack</button>
-                     </div>
-                     <div class="m-1 p-1 col-sm-2 col-md-2 col-xs-4">
-                        <button type="button" class="btn bg-olive " id="Other">Other</button>
-                     </div>
-                  </div>
-               </div>
-            </footer> --}}
         @endif
-
 
         <!-- Control Sidebar -->
         <aside class="control-sidebar control-sidebar-dark">
-            <!-- Control sidebar content goes here -->
+        <!-- Control sidebar content goes here -->
         </aside>
         <!-- /.control-sidebar -->
     </div>
+
     {{-- button floating --}}
     <div class="position-sticky sticky-top text-right floating-action-menu col-2 float-right"
         style="bottom: 30px; right: 50px;">
         <div class="action-menu">
             <div class="floating-action mb-2">
-                <div class="badge badge-pill badge-info">Membership</div>
-                <a href="/keanggotaan" class="shadow btn btn-floating btn-info rounded-circle ml-2"
-                    style="width: 45px; height: 45px" role="button" aria-pressed="true">
-                    <i class="fas fa-id-card-alt mt-2"></i></a>
-            </div>
-            <div class="floating-action mb-2">
-                <div class="badge badge-pill bg-warning">Pembelian</div>
-                <a href="/purchase/create" class="shadow btn btn-floating bg-orange rounded-circle ml-2"
-                    style="width: 45px; height: 45px" role="button" aria-pressed="true">
-                    <i class="fas fa-shopping-basket mt-2"></i></a>
-            </div>
-            <div class="floating-action mb-2">
                 <div class="badge badge-pill bg-teal">Kasir</div>
-                <a href="/sales/create" class="shadow btn btn-floating bg-teal rounded-circle ml-2"
-                    style="width: 45px; height: 45px" role="button" aria-pressed="true">
-                    <i class="fas fa-cash-register mt-2"></i></a>
+                <a href="/sales/create" class="shadow btn btn-floating bg-teal rounded-circle ml-2" style="width: 45px; height: 45px" role="button" aria-pressed="true">
+                    <i class="fas fa-cash-register mt-2"></i>
+                </a>
             </div>
         </div>
         <div class="d-block action-button mr-2">
-            <a class="shadow btn btn-floating btn-success rounded-circle" style="width: 45px; height: 45px"
-                role="button" aria-pressed="true"
-                onclick="$(this).closest('div.floating-action-menu').toggleClass('active')">
+            <a class="shadow btn btn-floating btn-success rounded-circle" style="width: 45px; height: 45px" role="button" aria-pressed="true" onclick="$(this).closest('div.floating-action-menu').toggleClass('active')">
                 <i class="fas fa-bars mt-2"></i>
             </a>
         </div>
     </div>
-
     <!-- ./wrapper -->
 
     <!-- jQuery -->
@@ -338,7 +252,6 @@
     <script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
     <!-- ChartJS -->
     <script src="/plugins/chart.js/Chart.min.js"></script>
-    {{-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> --}}
     <!-- Sparkline -->
     <script src="/plugins/sparklines/sparkline.js"></script>
     <!-- JQVMap -->
@@ -348,7 +261,6 @@
     <script src="/plugins/jquery-knob/jquery.knob.min.js"></script>
     <!-- InputMask -->
     <script src="/plugins/inputmask/jquery.inputmask.min.js"></script>
-
     <!-- Tempusdominus Bootstrap 4 -->
     <script src="/plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js"></script>
     <!-- Summernote -->
@@ -358,7 +270,6 @@
     <!-- AdminLTE App -->
     <script src="/dist/js/adminlte.js"></script>
     <!-- Select2 -->
-    {{-- <script src="/plugins/select2/js/select2.full.min.js"></script> --}}
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <!-- Bootstrap4 Duallistbox -->
     <script src="/plugins/bootstrap4-duallistbox/jquery.bootstrap-duallistbox.min.js"></script>
@@ -369,8 +280,7 @@
     <!-- jquery-validation -->
     <script src="/plugins/jquery-validation/jquery.validate.min.js"></script>
     <script src="/plugins/jquery-validation/additional-methods.min.js"></script>
-    <!-- DataTables  & Plugins -->
-    {{-- <script src="//cdn.datatables.net/1.10.7/js/jquery.dataTables.min.js"></script> --}}
+    <!-- DataTables & Plugins -->
     <script src="/plugins/datatables/jquery.dataTables.min.js"></script>
     <script src="/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
     <script src="/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
@@ -604,7 +514,7 @@
     <script>
         $(function() {
             $('.select2').select2({
-                theme: 'bootstrap4'
+                // theme: 'bootstrap4'
             });
             $("input[data-bootstrap-switch]").each(function() {
                 // $(this).bootstrapSwitch('state', $(this).prop('checked'));
