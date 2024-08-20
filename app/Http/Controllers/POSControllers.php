@@ -168,6 +168,16 @@ class POSControllers extends Controller
         return response()->json($var);
     }
 
+    public function paymentMethodDetails(Request $request)
+    {
+        $paymentMethodDetails = DB::table('SAPTPAYMENT_DETAILS')->where('paymentCode', $request->payCode)->get();
+
+        $var = [
+            'paymentMethodDetails' => $paymentMethodDetails
+        ];
+        return response()->json($var);
+    }
+
     /**
      * Store a newly created resource in storage.
      *
@@ -177,6 +187,7 @@ class POSControllers extends Controller
 
     public function store(Request $request, $action)
     {
+        dd($request);
         if (Helper::checkACL('sales', 'c')) {
             // Validation
             $vMessage = config('global.vMessage'); //get global validation messages\

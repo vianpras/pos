@@ -230,6 +230,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('sales/print/sementara/{table}/', 'POSControllers@printSementara')->name('printSalesSementara'); //
     Route::get('sales/order/{code}/', 'POSControllers@printOrder')->name('printOrder'); //
     Route::get('sales/payment_method/', 'POSControllers@paymentMethod')->name('sales.paymentMethod'); //
+    Route::post('sales/payment_method/details', 'POSControllers@paymentMethodDetails')->name('sales.paymentMethod.details'); //
     // .pos 
 
     // purchase 

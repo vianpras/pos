@@ -62,6 +62,7 @@
                             <div class="row">
                                 <div class="col align-self-center">
                                     <input type="hidden" name="sub_grand_total" id="sub_grand_total" value="0">
+                                    {{-- <input type="text" name="payment_charge" id="payment_charge" value="0"> --}}
                                     <span class="h5 m-0 float-left text-secondary">Sub Total</span>
                                 </div>
                                 <div class="col align-self-center">
@@ -75,6 +76,7 @@
                                     <span class="h5 m-0 float-left text-secondary">Diskon</span>
                                 </div>
                                 <div class="col align-self-center">
+                                    <input type="hidden" name="discount" id="discount" value="0">
                                     <span class="h5 m-0 float-right text-secondary" id="discount_view">
                                         {{ Helper::formatNumber('0', 'rupiah') }}
                                     </span>
@@ -120,15 +122,13 @@
                                             <tr>
                                                 <th width="18%">Item Info</th>
                                                 <th>Token Remarks</th>
-                                                <th width="5.7%">Cart</th>
-                                                <th width="5.7%">Actual</th>
+                                                <th width="5.7%">Qty</th>
                                                 <th width="13%">Price List</th>
                                                 <th>Price</th>
-                                                <th>Price Status</th>
                                                 <th width="5.7%">Disc. 1</th>
                                                 <th width="5.7%">Disc. 2</th>
                                                 <th width="5.7%">Disc. 3</th>
-                                                <th>Final Discount</th>
+                                                <th>Subtotal</th>
                                                 <th></th>
                                             </tr>
                                         </thead>
@@ -327,42 +327,36 @@
         $('#item-list').append(`
             <tr id="row-item-detail`+i+`" data-id="`+i+`">
                 <td class="align-middle">
-                    <input class="form-control form-control-sm" type="hidden" id="itemcode`+i+`" name="itemcode">
+                    <input class="form-control form-control-sm" type="hidden" id="itemcode`+i+`" name="itemcode[]" value="`+itemcode+`">
                     <dt>`+itemcode+`</dt>
                     <dd style="width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">`+itemname+`</dd>
                 </td>
                 <td class="align-middle">
-                    <input class="form-control form-control-sm" type="text" name="token_remarks">
+                    <input class="form-control form-control-sm" type="text" name="token_remarks[]">
                 </td>
                 <td class="align-middle">
-                    <input class="form-control form-control-sm" type="number" name="cart" id="cart`+i+`" value="`+qty+`" readonly>
+                    <input class="form-control form-control-sm" type="number" name="qty[]" id="qty`+i+`" onchange="calcGrand()" value="`+qty+`">
                 </td>
                 <td class="align-middle">
-                    <input class="form-control form-control-sm" type="number" name="actual" id="actual`+i+`" onchange="calcGrand()" value="`+qty+`">
-                </td>
-                <td class="align-middle">
-                    <select class="form-control form-control-sm" name="price_list" id="price_list`+i+`" onchange="priceList('`+itemcode+`', this.value, `+i+`)" style="appearance: none;">
+                    <select class="form-control form-control-sm" name="price_list[]" id="price_list`+i+`" onchange="priceList('`+itemcode+`', this.value, `+i+`)" style="appearance: none;">
                         `+output.join('')+`
                     </select>
                 </td>
                 <td class="align-middle">
-                    <input class="form-control form-control-sm" type="hidden" name="price" id="price`+i+`" value="`+price+`" readonly>
+                    <input class="form-control form-control-sm" type="hidden" name="price[]" id="price`+i+`" value="`+price+`" readonly>
                     <span id="price_show`+i+`">`+maskRupiah("", price)+`</span>
                 </td>
                 <td class="align-middle">
-                    <input class="form-control form-control-sm" type="text" name="price_status" value="0">
+                    <input class="form-control form-control-sm" type="number" name="disc1[]" id="disc1`+i+`" onchange="calcSum(`+i+`)" value="0">
                 </td>
                 <td class="align-middle">
-                    <input class="form-control form-control-sm" type="number" name="disc1" value="0">
+                    <input class="form-control form-control-sm" type="number" name="disc2[]" id="disc2`+i+`" onchange="calcSum(`+i+`)" value="0" readonly>
                 </td>
                 <td class="align-middle">
-                    <input class="form-control form-control-sm" type="number" name="disc2" value="0">
+                    <input class="form-control form-control-sm" type="number" name="disc3[]" id="disc3`+i+`" onchange="calcSum(`+i+`)" value="0" readonly>
                 </td>
                 <td class="align-middle">
-                    <input class="form-control form-control-sm" type="number" name="disc3" value="0">
-                </td>
-                <td class="align-middle">
-                    <input class="form-control form-control-sm" type="text" name="final_disc" value="0">
+                    <input class="form-control form-control-sm" type="text" name="subtotal[]" id="subtotal`+i+`" value="0" readonly>
                 </td>
                 <td class="align-middle">
                     <button type="button" name="remove" id="`+i+`" class="btn btn-sm btn-danger btn_remove"><span class="fas fa-trash"></span></button>
@@ -373,7 +367,7 @@
         $('#modalBlade').modal("hide");
         $("#item-details-price").html("");
         $('#itemcode').val('').select2('destroy').select2();
-        calcGrand()
+        calcSum(i)
     }
 
     $(document).on('click', '.btn_remove', function(){
@@ -420,19 +414,69 @@
         });
     }
 
+    const calcSum = (i) => {
+        let qty = $("input#qty"+i).val();
+        let price = $("input#price"+i).val();
+    
+        $("input#subtotal"+i).val(parseInt(qty)*parseInt(price));
+
+        let subtotal = $("input#subtotal"+i).val();
+        let disc1 = $("input#disc1"+i).val();
+        let disc2 = $("input#disc2"+i).val();
+        let disc3 = $("input#disc3"+i).val();
+
+        if(disc1 != 0){
+            $("input#disc2"+i).attr("readonly", false);
+            let disc = disc1/100 * subtotal;
+
+            subtotal = subtotal - disc;
+        } else{
+            $("input#disc2"+i).val(0);
+            $("input#disc2"+i).attr("readonly", true);
+            $("input#disc3"+i).val(0);
+            $("input#disc3"+i).attr("readonly", true);
+        }
+
+        if(disc2 != 0) {
+            $("input#disc3"+i).attr("readonly", false);
+            let disc = disc2/100 * subtotal;
+
+            subtotal = subtotal - disc;
+        } else{
+            $("input#disc3"+i).val(0);
+            $("input#disc3"+i).attr("readonly", true);
+        }
+
+        if(disc3 != 0) {
+            $("input#disc3"+i).attr("readonly", false);
+            let disc = disc3/100 * subtotal;
+
+            subtotal = subtotal - disc;
+        }
+
+        $("input#subtotal"+i).val(subtotal);
+        calcGrand();
+    }
+
     const calcGrand = () => {
         let subGrandTotalPrice = parseInt(0);
+        let grandTotalPrice = parseInt(0);
+        let grandDiscount = $("input#discount").val();
+        let grandTax = $("input#tax").val();
 
         $('table > #item-list > tr').each(function() { 
             let rowIndex = $(this).data("id");
-            let actual = $("input#actual" + rowIndex).val();
-            let price = $("input#price" + rowIndex).val();
-    
-            subGrandTotalPrice += parseInt(actual)*parseInt(price);
+            let subtotal = $("input#subtotal"+rowIndex).val();
+
+            subGrandTotalPrice = parseInt(subGrandTotalPrice) + parseInt(subtotal);
         });
 
         $("#sub_grand_total").val(subGrandTotalPrice);
         maskRupiah("#sub_grand_total_view", subGrandTotalPrice);
+
+        grandTotalPrice = parseInt(subGrandTotalPrice) - parseInt(grandDiscount) + parseInt(grandTax);
+        $("#total").val(grandTotalPrice);
+        maskRupiah("#total_view", grandTotalPrice);
     }
 
     const paymentMethod = () => {
@@ -449,7 +493,7 @@
                     payM = `'`+value.code+`'`;
                     console.log(payM)
                     htmlOption += `
-                        <button class="btn bg-lime btn-sm btn-block button-mthd" id=`+payM.replace(/\s/g, '')+` onclick="setPay(`+payM.replace(/\s/g, '')+`,'','')" style="padding: 25px;height: 15vh;color: #2e5781 !important;background-color: #dbdbdb17 !important; border: 1px solid #2e5781">
+                        <button class="btn bg-lime btn-sm btn-block button-mthd" id=`+payM.replace(/\s/g, '')+` onclick="setPay(`+payM.replace(/\s/g, '')+`,`+payM+`,'')" style="padding: 25px;height: 15vh;color: #2e5781 !important;background-color: #dbdbdb17 !important; border: 1px solid #2e5781">
                             <b>`+value.name+`</b>
                         </button>
                     `;
@@ -473,8 +517,8 @@
         $(".button-mthd").attr('style', 'padding: 25px;height: 15vh;color: #2e5781 !important;background-color: #dbdbdb17 !important; border: 1px solid #2e5781');
         $("#"+e).attr('style', 'padding: 25px;height: 15vh;color: white !important;background-color: #2e5781 !important;');
 
-        console.log(e)
         let total = formatNumber($("#total").val());
+        let href = '{{ route("sales.paymentMethod.details") }}';
         switch (e) {
             case "Cash":
                 $("#payment").html("");
@@ -516,102 +560,256 @@
                     </div>
                 `);
                 break;
+            case "Credit":
+                $.ajax({
+                    url: href,
+                    method: "POST",
+                    data: {
+                        payCode: f
+                    },
+                    beforeSend: function() {
+                        doBeforeSend(true)
+                    },
+                    success: function(result) {
+                        console.log(result);
+                        let htmlOption = "";
+                        $.each(result.paymentMethodDetails, function(key, value) {
+                            payM = `'`+value.paymentCode+`'`;
+                            htmlOption += `
+                                <div class="col-12 col-sm-4 col-md-3 col-lg-3 my-1">
+                                    <button class="btn bg-light btn-sm btn-block btn-payment" id="`+value.paymentCode+``+value.paymentDetails+`" onclick="paymentSet(`+payM+`,'`+value.paymentDetails+`', '`+value.u_charge+`', this.id)" style="min-height: 100px; max-height: 100px;">
+                                        <img src="{{ asset('dist/img/bank/`+value.image_details+`') }}" alt="" style="max-width: 100px;">
+                                    </button>
+                                </div>
+                            `;
+                        });
+                        $("#payment").html(`
+                            <div class="row d-flex justify-content-arround">
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 my-1">
+                                    <div class="form-group">
+                                        <label for="card_number">Card Number</label>
+                                        <input class="form-control text-center" id="card_number" placeholder="0000 0000 0000 0000">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row d-flex align-item-center justify-content-arround">
+                                `+htmlOption+`
+                            </div>
+                        `);
+                        var cards = [{ "mask": "#### #### #### ####"}, { "mask": "#### #### #### ####"}];
+                        $('#card_number').inputmask({ 
+                            mask: cards, 
+                            greedy: false, 
+                            definitions: { '#': { validator: "[0-9]", cardinality: 1}} 
+                        });
+                    },
+                    error: function(jqXHR, testStatus, error) {
+                        popToast('error', 'E999 - Terjadi Kesalah Komunikasi Server');
+
+                        doBeforeSend(false)
+                    },
+                    complete: function() {
+                        // selesai
+                        doBeforeSend(false)
+                    },
+                    timeout: 8000,
+                });
+                break;
+            case "DebitCard":
+                $.ajax({
+                    url: href,
+                    method: "POST",
+                    data: {
+                        payCode: f
+                    },
+                    beforeSend: function() {
+                        doBeforeSend(true)
+                    },
+                    success: function(result) {
+                        console.log(result);
+                        let htmlOption = "";
+                        $.each(result.paymentMethodDetails, function(key, value) {
+                            payM = `'`+value.paymentCode+`'`;
+                            htmlOption += `
+                                <div class="col-12 col-sm-4 col-md-3 col-lg-3 my-1">
+                                    <button class="btn bg-light btn-sm btn-block btn-payment" id="`+value.paymentCode+``+value.paymentDetails+`" onclick="paymentSet(`+payM+`,'`+value.paymentDetails+`', '`+value.u_charge+`', this.id)" style="min-height: 100px; max-height: 100px;">
+                                        <img src="{{ asset('dist/img/bank/`+value.image_details+`') }}" alt="" style="max-width: 100px;">
+                                    </button>
+                                </div>
+                            `;
+                        });
+                        $("#payment").html(`
+                            <div class="row d-flex justify-content-arround">
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 my-1">
+                                    <div class="form-group">
+                                        <label for="card_number">Card Number</label>
+                                        <input class="form-control text-center" id="card_number" placeholder="0000 0000 0000 0000">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row d-flex align-item-center justify-content-arround">
+                                `+htmlOption+`
+                            </div>
+                        `);
+                        var cards = [{ "mask": "#### #### #### ####"}, { "mask": "#### #### #### ####"}];
+                        $('#card_number').inputmask({ 
+                            mask: cards, 
+                            greedy: false, 
+                            definitions: { '#': { validator: "[0-9]", cardinality: 1}} 
+                        });
+                    },
+                    error: function(jqXHR, testStatus, error) {
+                        popToast('error', 'E999 - Terjadi Kesalah Komunikasi Server');
+
+                        doBeforeSend(false)
+                    },
+                    complete: function() {
+                        // selesai
+                        doBeforeSend(false)
+                    },
+                    timeout: 8000,
+                });
+                break;
+            case "E-Wallet":
+                $.ajax({
+                    url: href,
+                    method: "POST",
+                    data: {
+                        payCode: f
+                    },
+                    beforeSend: function() {
+                        doBeforeSend(true)
+                    },
+                    success: function(result) {
+                        console.log(result);
+                        let htmlOption = "";
+                        $.each(result.paymentMethodDetails, function(key, value) {
+                            payM = `'`+value.paymentCode+`'`;
+                            htmlOption += `
+                                <div class="col-12 col-sm-4 col-md-3 col-lg-3 my-1">
+                                    <button class="btn bg-light btn-sm btn-block btn-payment" id="`+value.paymentCode+``+value.paymentDetails+`" onclick="paymentSet(`+payM+`,'`+value.paymentDetails+`', '`+value.u_charge+`', this.id)" style="min-height: 100px; max-height: 100px;">
+                                        <img src="{{ asset('dist/img/online/`+value.image_details+`') }}" alt="" style="max-width: 100px;">
+                                    </button>
+                                </div>
+                            `;
+                        });
+                        $("#payment").html(`
+                            <div class="row d-flex align-item-center justify-content-arround">
+                                `+htmlOption+`
+                            </div>
+                        `);
+                    },
+                    error: function(jqXHR, testStatus, error) {
+                        popToast('error', 'E999 - Terjadi Kesalah Komunikasi Server');
+
+                        doBeforeSend(false)
+                    },
+                    complete: function() {
+                        // selesai
+                        doBeforeSend(false)
+                    },
+                    timeout: 8000,
+                });
+                break;
+            case "Transfer":
+                $.ajax({
+                    url: href,
+                    method: "POST",
+                    data: {
+                        payCode: f
+                    },
+                    beforeSend: function() {
+                        doBeforeSend(true)
+                    },
+                    success: function(result) {
+                        console.log(result);
+                        let htmlOption = "";
+                        $.each(result.paymentMethodDetails, function(key, value) {
+                            payM = `'`+value.paymentCode+`'`;
+                            htmlOption += `
+                                <div class="col-12 col-sm-4 col-md-3 col-lg-3 my-1">
+                                    <button class="btn bg-light btn-sm btn-block btn-payment" id="`+value.paymentCode+``+value.paymentDetails+`" onclick="paymentSet(`+payM+`,'`+value.paymentDetails+`', '`+value.u_charge+`', this.id)" style="min-height: 100px; max-height: 100px;">
+                                        <img src="{{ asset('dist/img/bank/`+value.image_details+`') }}" alt="" style="max-width: 100px;">
+                                    </button>
+                                </div>
+                            `;
+                        });
+                        $("#payment").html(`
+                            <div class="row d-flex align-item-center justify-content-arround">
+                                `+htmlOption+`
+                            </div>
+                        `);
+                    },
+                    error: function(jqXHR, testStatus, error) {
+                        popToast('error', 'E999 - Terjadi Kesalah Komunikasi Server');
+
+                        doBeforeSend(false)
+                    },
+                    complete: function() {
+                        // selesai
+                        doBeforeSend(false)
+                    },
+                    timeout: 8000,
+                });
+                break;
+            case "TransferCash":
+                $.ajax({
+                    url: href,
+                    method: "POST",
+                    data: {
+                        payCode: f
+                    },
+                    beforeSend: function() {
+                        doBeforeSend(true)
+                    },
+                    success: function(result) {
+                        console.log(result);
+                        let htmlOption = "";
+                        $.each(result.paymentMethodDetails, function(key, value) {
+                            payM = `'`+value.paymentCode+`'`;
+                            htmlOption += `
+                                <div class="col-12 col-sm-4 col-md-3 col-lg-3 my-1">
+                                    <button class="btn bg-light btn-sm btn-block btn-payment" id="`+value.paymentCode+``+value.paymentDetails+`" onclick="paymentSet(`+payM+`,'`+value.paymentDetails+`', '`+value.u_charge+`', this.id)" style="min-height: 100px; max-height: 100px;">
+                                        <img src="{{ asset('dist/img/bank/`+value.image_details+`') }}" alt="" style="max-width: 100px;">
+                                    </button>
+                                </div>
+                            `;
+                        });
+                        $("#payment").html(`
+                            <div class="row d-flex justify-content-arround">
+                                <div class="col-12 col-sm-6 col-md-6 col-lg-6 my-1">
+                                    <div class="form-group">
+                                        <label for="cash_ammount">Cash Amount</label>
+                                        <input class="form-control text-right" id="cash_amount" placeholder="0">
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-6 col-lg-6 my-1">
+                                    <div class="form-group">
+                                        <label for="transfer_ammount">Transfer Amount</label>
+                                        <input class="form-control text-right" id="transfer_ammount" placeholder="0" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row d-flex align-item-center justify-content-arround">
+                                `+htmlOption+`
+                            </div>
+                        `);
+                    },
+                    error: function(jqXHR, testStatus, error) {
+                        popToast('error', 'E999 - Terjadi Kesalah Komunikasi Server');
+
+                        doBeforeSend(false)
+                    },
+                    complete: function() {
+                        // selesai
+                        doBeforeSend(false)
+                    },
+                    timeout: 8000,
+                });
+                break;
         }
-        // if(e == 'tunai'){
-        //     $("#payment").html("");
-        //     $("#payment").html(`
-        //         <div class="row">
-        //             <input type="hidden" class="form-control" id="operator" value="+">
-        //             <div class="col-sm-2 col-md-2">
-        //                 <button type="button" class="btn btn-success btn-block btn-xs" id="plusOperator" onclick="setOperator('+')" style="font-size: 20px !important;">+</button>
-        //                 <button type="button" class="btn btn-outline-success btn-block btn-xs" id="minOperator" onclick="setOperator('-')" style="font-size: 20px !important;">-</button>
-        //             </div>
-        //             <div class="col-sm-10 col-md-10">
-        //                 <div class="row justify-content-md-center">
-        //                     <div class="col-sm-6 col-md-6">
-        //                         <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(500)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">500</button>
-        //                     </div>
-        //                     <div class="col-sm-6 col-md-6">
-        //                         <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(10000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">10.000</button>
-        //                     </div>
-        //                     <div class="col-sm-6 col-md-6">
-        //                         <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(1000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">1.000</button>
-        //                     </div>
-        //                     <div class="col-sm-6 col-md-6">
-        //                         <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(20000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">20.000</button>
-        //                     </div>
-        //                     <div class="col-sm-6 col-md-6">
-        //                         <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(2000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">2.000</button>
-        //                     </div>
-        //                     <div class="col-sm-6 col-md-6">
-        //                         <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(50000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">50.000</button>
-        //                     </div>
-        //                     <div class="col-sm-6 col-md-6">
-        //                         <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(5000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">5.000</button>
-        //                     </div>
-        //                     <div class="col-sm-6 col-md-6">
-        //                         <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(100000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">100.000</button>
-        //                     </div>
-        //                 </div>
-        //             </div>
-        //         </div>
-        //     `);
 
-        //     $("#setNonTunai").attr('style', 'padding: 25px; height: 14vh;color: #2e5781 !important;background-color: #dbdbdb17 !important; border: 1px solid #2e5781');
-        //     $("#setOnline").attr('style', 'padding: 25px;height: 15vh;color: #2e5781 !important;background-color: #dbdbdb17 !important; border: 1px solid #2e5781');
-
-        //     $("#setTunai").attr('style', 'padding: 25px;height: 15vh;color: white !important;background-color: #2e5781 !important;');
-        // }
-
-        // let total = formatNumber($("#total").val());
-        // switch (e) {
-        //     case "debit":
-        //         $("#setCashBack").val(total);
-        //         $("#pMethod").val("Kartu debit/kredit "+f);
-        //         $("#setCashBack").attr("readonly", true);
-        //         break;
-        //     case "ewallet":
-        //         $("#setCashBack").val(total);
-        //         $("#pMethod").val("ewallet");
-        //         $("#setCashBack").attr("readonly", true);
-        //         break;
-        //     case "25000":
-        //         $("#pMethod").val("tunai");
-        //         $("#setCashBack").val("25.000");
-        //         break;
-        //     case "50000":
-        //         $("#pMethod").val("tunai");
-        //         $("#setCashBack").val("50.000");
-        //         break;
-
-        //     case "75000":
-        //         $("#setCashBack").val("75.000");
-        //         $("#pMethod").val("tunai");
-        //         $("#setCashBack").attr("readonly", true);
-        //         break;
-        //     case "100000":
-        //         $("#setCashBack").val("100.000");
-        //         $("#pMethod").val("tunai");
-        //         $("#setCashBack").attr("readonly", true);
-        //         break;
-        //     case "tunai":
-        //         $("#setCashBack").val("");
-        //         $("#setCashBack").focus();
-        //         $("#setCashBack").attr("readonly", false);
-        //         break;
-
-        //     case "pas":
-        //         $("#setCashBack").val(total);
-        //         $("#pMethod").val("tunai");
-        //         $("#setCashBack").attr("readonly", false);
-        //         break;
-        //     default:
-        //         $("#setCashBack").val(total);
-        //         $("#pMethod").val(e);
-        //         $("#setCashBack").attr("readonly", true);
-        //         break;
-        // }
-        setCashBack();
+        $("#pMethod").val(e);
     };   
 
     const setOperator = (param) => {
@@ -629,7 +827,7 @@
     const setBayarTunai = (nominal) => {
         let total = parseInt($("#total").val());
         let operator = $("#operator").val();
-        let nominalNow = $("#setCashBack").val().toString().replace('.', "");
+        let nominalNow = $("#setCashBack").val().replace(/(\d)[\s.]+(?=\d)/g, '$1');
 
         let bayar = 0;
 
@@ -659,70 +857,7 @@
             $('button.swal2-confirm').attr("disabled", false);
             $('button.swal2-deny').attr("disabled", false);
         }
-    }; 
-    
-    const nonTunai = () => { 
-        $("#payment").html("");
-
-        $("#setTunai").attr('style', 'padding: 25px;height: 15vh;color: #2e5781 !important;background-color: #dbdbdb17 !important; border: 1px solid #2e5781');
-        $("#setOnline").attr('style', 'padding: 25px;height: 15vh;color: #2e5781 !important;background-color: #dbdbdb17 !important; border: 1px solid #2e5781');
-
-        $("#setNonTunai").attr('style', 'padding: 25px; height: 14vh;color: white !important;background-color: #2e5781 !important;');
-
-        $("#payment").html(`
-            <div class="row d-flex align-item-center justify-content-arround">
-                <div class="col-3 my-1">
-                    <button class="btn bg-light btn-sm btn-block" id="setBCA" onclick=setPay('debit','BCA',this.id) style="padding: 34px">
-                        <img src="{{ asset('dist/img/logos/bca.png') }}" alt="" style="max-width: 80px;">
-                    </button>
-                </div>
-                <div class="col-3 my-1">
-                    <button class="btn bg-light btn-sm btn-block" id="setMANDIRI" onclick=setPay('debit','MANDIRI',this.id) style="padding: 33px">
-                        <img src="{{ asset('dist/img/logos/mandiri.png') }}" alt="" style="max-width: 100px;">
-                    </button>
-                </div>
-            </div>
-        `);
-    }
-    
-    const onlinePayment = () => { 
-        $("#payment").html("");
-
-        $("#setTunai").attr('style', 'padding: 25px;height: 15vh;color: #2e5781 !important;background-color: #dbdbdb17 !important; border: 1px solid #2e5781');
-        $("#setNonTunai").attr('style', 'padding: 25px; height: 14vh;color: #2e5781 !important;background-color: #dbdbdb17 !important; border: 1px solid #2e5781');
-
-        $("#setOnline").attr('style', 'padding: 25px;height: 15vh;color: white !important;background-color: #2e5781 !important;');
-
-        $("#payment").html(`
-            <div class="row d-flex align-item-center justify-content-arround">
-                <div class="col-3 my-1">
-                    <button class="btn bg-light btn-sm btn-block" id="setGoPay" onclick=setPay('GoPay','',this.id)>
-                        <img src="{{ asset('dist/img/logos/gopay.png') }}" alt="" style="max-width: 150px;">
-                    </button>
-                </div>
-                <div class="col-3 my-1">
-                    <button class="btn bg-light btn-sm btn-block" id="setOVO" onclick=setPay('OVO','',this.id) style="padding:43px;">
-                        <img src="{{ asset('dist/img/logos/ovo.png') }}" alt="" style="max-width: 56px;">
-                    </button>
-                </div>
-                <div class="col-3 my-1">
-                    <button class="btn bg-light btn-sm btn-block" id="setShopeePay" onclick=setPay('ShopeePay','',this.id) style="padding:36px;">
-                        <img src="{{ asset('dist/img/logos/shopeepay.png') }}" alt="" style="max-width: 80px;">
-                    </button>
-                </div>
-                <div class="col-3 my-1">
-                    <button class="btn bg-light btn-sm btn-block" id="setDana" onclick=setPay('Dana','',this.id) style="padding:42px;">
-                        <img src="{{ asset('dist/img/logos/dana.png') }}" alt="" style="max-width: 80px;">    
-                    </button>
-                </div>
-                <div class="col-3 my-1">
-                    <button class="btn bg-light btn-sm btn-block" id="setLinkAja" onclick=setPay('LinkAja','',this.id) style="padding:29px;">
-                        <img src="{{ asset('dist/img/logos/linkaja.png') }}" alt="" style="max-width: 50px;">
-                    </button>
-                </div>
-            </div>
-        `);
-    }    
+    };    
     
     // calculation cashback before print
     const setCashBack = () => {
@@ -739,19 +874,44 @@
             $('button.swal2-confirm').attr("disabled", false);
             $('button.swal2-deny').attr("disabled", false);
         }
-    };    
+    }; 
+    
+    const paymentSet = (method, methodDetails, charge, buttonId) => {
+        let total = parseInt($("#total").val());
+        total = total - parseInt($("#charge").val());
+
+        let paymentCharge =  total * parseFloat(charge)/100;
+        console.log(paymentCharge);
+        var newTotal = total + paymentCharge;
+        $("#charge").val(parseInt(paymentCharge));
+        $("#total").val(newTotal); 
+
+        if(method == "TransferCash"){
+            let cash_ammount = parseInt($("#cash_amount").val());
+            if(cash_ammount == 0 || cash_ammount == ""){
+                alert("Please fill cash amount first");
+            } else {
+                let transfer_ammount = newTotal - cash_ammount;
+    
+                $("#transfer_ammount").val(transfer_ammount);
+                $("#setCashBack").val(formatNumber(cash_ammount + transfer_ammount));
+            }
+        } else {
+            $("#setCashBack").val(formatNumber(newTotal));
+        }
+        maskRupiah("#total_view", newTotal);
+        maskRupiah("#total_penjualan", newTotal);
+        
+        $("#pMethodDetails").val(methodDetails);
+        $(".btn-payment").removeClass("btn-dark");
+        $("#"+buttonId).addClass("btn-dark");
+        setCashBack();
+    }
 
     const saveData = (action) => {
         paymentMethod()
         let href = "/sales/store/" + action;
         let formData = $("form").serialize();
-        let pay = $("#setCashBack").unmask().val();
-        let total = $("#total").unmask().val();
-        let cashBack = pay - total;
-        let pMethod = $("#pMethod").val();
-        formData = formData + '&pay='+ pay;
-        formData = formData + '&cashBack='+ cashBack;
-        formData = formData + '&pMethod='+ pMethod;
 
     swal
         .fire({
@@ -772,7 +932,9 @@
                     <div class="description-block border-right">
                         <span class="description-text text-white">TOTAL PENJUALAN</span>
                         <p class="text-secondary"></p>
-                        <h1 class="description-header text-white" id="monthlySales">${maskRupiah("", $("#total").val())}</h1>
+                        <input type="hidden" name="grandtotal" id="grandtotal" value="0">
+                        <input type="hidden" name="charge" id="charge" value="0">
+                        <h1 class="description-header text-white" id="total_penjualan">${maskRupiah("", $("#total").val())}</h1>
                     </div>
                     <!-- /.description-block -->
                 </div>
@@ -798,22 +960,28 @@
                 </div>
             </div>
             <div class="row py-2">
-                <div class="col-sm-3 scrollYMenu" id="payment_method" style="background-color: #c5c5c521; padding: 12px; height: 50vh">
-                </div>
-                <div class="col-sm-9" id="payment" style="padding: 12px; height: 50vh">
-                </div>
+                <div class="col-sm-3 scrollYMenu" id="payment_method" style="background-color: #c5c5c521; padding: 12px; height: 50vh"></div>
+                <div class="col-sm-9 scrollYMenu" id="payment" style="padding: 12px; height: 50vh"></div>
             </div>
-            <input type="hidden" class="form-control form-control" id="pMethod"  name="pMethod" value="Tunai" readonly>
+            <input type="hidden" class="form-control form-control" id="pMethod" name="pMethod" readonly>
+            <input type="hidden" class="form-control form-control" id="pMethodDetails" name="pMethodDetails" readonly>
         `,
         })
         .then((resultSwal1) => {
             let pay = $("#setCashBack").unmask().val();
             let total = $("#total").unmask().val();
+            let grandtotal = $("#grandtotal").unmask().val();
+            let charge = $("#charge").unmask().val();
             let cashBack = pay - total;
             let pMethod = $("#pMethod").val();
+            let pMethodDetails = $("#pMethodDetails").val();
+            formData = formData + '&grandtotal='+ total;
+            formData = formData + '&charge='+ charge;
             formData = formData + '&pay='+ pay;
             formData = formData + '&cashBack='+ cashBack;
             formData = formData + '&pMethod='+ pMethod;
+            formData = formData + '&pMethodDetail='+ pMethodDetails;
+
             if (resultSwal1.isConfirmed && pay >= total) {
                 $.ajax({
                     url: href,
