@@ -67,7 +67,7 @@
 </head>
 
 <body>
-    {{-- <button class="hidden-print" onclick="balikKasir()">Kembali</button> --}}
+    <button class="hidden-print" onclick="balikKasir()">Kembali</button>
     <button class="hidden-print" onclick="window.close()" autofocus>Tutup (Q)</button>
     <button class="hidden-print" onclick="window.print()">Print (P)</button>
 
@@ -75,33 +75,33 @@
         <table>
             <tbody>
                 <tr>
-                    <td colspan="3" align="center">
+                    <td colspan="4" align="center">
                         <img src="/img/configurations/1" height="50px"/>
                     </td>
                 </tr>
                 <tr>
-                    <td colspan="3" align="center" style="padding-top: 2mm;padding-bottom: 2mm;">
+                    <td colspan="4" align="center" style="padding-top: 2mm;padding-bottom: 2mm;">
                         <b class="twentenpx">{{ $company->name }}</b></br></br>
                         {!! $company->address1 !!}</br>
                         {{ $company->mobile }} - {{ $company->email }}</br>
                     </td>
                 </tr>
                 <tr>
-                    <td colspan="3">
+                    <td colspan="4">
                         <hr>
                     </td>
                 </tr>
                 <tr>
-                    <td class="eightpx" align="left" style="width: 30px">
+                    <td class="eightpx" align="left">
                         Tanggal 
                     </td>
-                    <td style="width: 10px">:</td>
-                    <td>
-                        {{Helper::setDate($sales->date_order,'fullDateId')}}
+                    <td>:</td>
+                    <td class="eightpx">
+                        {{ date('d/m/Y', strtotime($sales->date_order)) }}
                     </td>
-                    {{-- <td class="eightpx" align="left">
+                    <td class="eightpx" align="left">
                         No.: {{$sales->code}}
-                    </td> --}}
+                    </td>
                 </tr>
                 <tr>
                 </tr>
@@ -113,22 +113,23 @@
                     <td>
                         {{(Auth::user()->name)=='administrator'? 'admin' : Auth::user()->name}}
                     </td>
+                    <td class="eightpx" align="left">
+                        Pembayaran : {{ $sales->pMethod.' '.(($sales->pMethodDetail) ? $sales->pMethodDetail : "") }}
+                    </td>
                     {{-- <td class="eightpx" align="left">
                         Pelanggan : {{$sales->customer}}
                     </td> --}}
                 </tr>
                 <tr>
                     <td class="eightpx" align="left">
-                        Meja
+                        Customer
                     </td>
                     <td>:</td>
                     <td>
-                        {{ $sales->table }}
+                        {{ $sales->customer }}
                     </td>
+
                     {{-- <td class="eightpx" align="left">
-                        Pembayaran : {{ $sales->pMethod }}
-                    </td>
-                    <td class="eightpx" align="left">
                         Member ID : {{ is_null($sales->membership_code) ? '-': '#'.$sales->membership_code  }}
                     </td> --}}
                 </tr>
@@ -210,7 +211,7 @@
                     </td>
                     <td colspan='2' class="ninepx" style='text-align:right;'>
                         {{-- {{ request()->has('pay') ? Helper::formatNumber(request()->get('pay'),'rupiah') : 'n/a' }}</br> --}}
-                        {{  Helper::formatNumber($sales->pay,'rupiah') }}</br>
+                        {{  Helper::formatNumber($sales->payCash,'rupiah') }}</br>
                     </td>
                 </tr>
                 <tr>

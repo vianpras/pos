@@ -187,18 +187,17 @@ class POSControllers extends Controller
 
     public function store(Request $request, $action)
     {
-        dd($request);
-        if (Helper::checkACL('sales', 'c')) {
+        if(Helper::checkACL('sales', 'c')) {
             // Validation
-            $vMessage = config('global.vMessage'); //get global validation messages\
-            $validator = Validator::make($request->all(), [
-                'table' => 'required',
-            ], $vMessage);
-            // Valid?
-            $valid = Helper::validationFail($validator);
-            if (!is_null($valid)) {
-                return response()->json($valid); //return if not valid
-            }
+            // $vMessage = config('global.vMessage'); //get global validation messages\
+            // $validator = Validator::make($request->all(), [
+            //     'table' => 'required',
+            // ], $vMessage);
+            // // Valid?
+            // $valid = Helper::validationFail($validator);
+            // if (!is_null($valid)) {
+            //     return response()->json($valid); //return if not valid
+            // }
 
             // jika meja blm di pilih
             // Query creator
@@ -206,167 +205,144 @@ class POSControllers extends Controller
 
             try {
                 $code = Helper::docPrefix('sales');
-                // $membership_code = DB::table('memberships')->where('code', $request->membership_code)->first();
                 // jika bayar
                 if ($action == "bayar") {
                     $sales = DB::table('sales')->insert([
-                                'code'          => $code,
-                                'table'         => $request->table,
-                                'date_order'    => Carbon::now(),
-                                'discount'      => $request->discount,
-                                'tax'           => $request->tax,
-                                'pay'           => $request->pay,
-                                'cashBack'      => $request->cashBack,
-                                'pMethod'       => $request->pMethod,
-                                'status'        => $action == "simpan" ? "pending" : "close",
-                                'created_at'    => Carbon::now(),
-                                'user_created'  => Auth::id(),
-                            ]);
-
-                    $subGrandTotal = 0;
-                    $GrandTotal = 0;
+                        'code'          => $code,
+                        'customer'      => $request->custcode,
+                        'date_order'    => Carbon::now(),
+                        'discount'      => $request->discount,
+                        'sub_total'     => $request->total,
+                        'tax'           => $request->tax,
+                        'total'         => $request->grandtotal,
+                        'pCharge'        => $request->charge,
+                        'payCash'       => $request->payCash,
+                        'payNonCash'    => $request->payNonCash,
+                        'cashBack'      => $request->cashBack,
+                        'pMethod'       => $request->pMethod,
+                        'pMethodDetail' => $request->pMethodDetail,
+                        'status'        => $action == "simpan" ? "pending" : "close",
+                        'created_at'    => Carbon::now(),
+                        'user_created'  => Auth::id(),
+                    ]);
 
                     // simpan sales details
-                    if ($request->item_id > 0) {
-                        foreach ($request->item_id as $key => $value) {
-                            if (!is_null($request->item_id[$key]) || ($request->quantity[$key] > 0)) {
-                                $item = DB::table('master_items')->select('id','buy_price', 'sell_price')->where('id', $request->item_id[$key])->first();
-                                $profit_global = DB::table('profit_setting')->where('itemcode', 'Semua')->first();
-                                $sellPrice = 0;
-                                if($profit_global){
-                                    if($profit_global->profit_type == 'persentase'){
-                                        $sellPrice = $item->sell_price + ($item->sell_price * $profit_global->jumlah/100);
-                                    } else {
-                                        $sellPrice = $item->sell_price + $profit_global->jumlah;
-                                    }
-                                } else {
-                                    $profit = DB::table('profit_setting')->where('itemcode', $item->id)->first();
-                                    if($profit){
-                                        if($profit->profit_type == 'persentase'){
-                                            $sellPrice = $item->sell_price + ($item->sell_price * $profit->jumlah/100);
-                                        } else {
-                                            $sellPrice = $item->sell_price + $profit->jumlah;
-                                        }
-                                    } else {
-                                        $sellPrice = $item->sell_price;
-                                    }
-                                }
-                                $subTotal = abs($request->quantity[$key]) * $sellPrice;
-                                $salesDetails = DB::table('sales_details')->insert([
-                                                    'sales_id'      => $code,
-                                                    'item_id'       => $request->item_id[$key],
-                                                    'quantity'      => abs($request->quantity[$key]),
-                                                    'buy_price'     => $item->buy_price,
-                                                    'sell_price'    => $sellPrice,
-                                                    'sub_total'     => $subTotal,
-                                                    'description'   => $request->catatan[$key],
-                                                    'created_at'    => Carbon::now(),
-                                                ]);
-                                $subGrandTotal = $subGrandTotal + $subTotal;
+                    if ($request->itemcode > 0) {
+                        foreach ($request->itemcode as $key => $value) {
+                            if(!is_null($request->itemcode[$key]) || ($request->qty[$key] > 0)) {
+                                DB::table('sales_details')->insert([
+                                    'sales_id'      => $code,
+                                    'itemcode'      => $request->itemcode[$key],
+                                    'quantity'      => abs($request->qty[$key]),
+                                    'pricelist'     => $request->price_list[$key],
+                                    'sell_price'    => $request->price[$key],
+                                    'disc1'         => $request->disc1[$key],
+                                    'disc2'         => $request->disc2[$key],
+                                    'disc3'         => $request->disc3[$key],
+                                    'sub_total'     => $request->subtotal[$key],
+                                    'created_at'    => Carbon::now(),
+                                ]);
                             }
                         }
                     }
 
-                    $sumDisc    = $subGrandTotal - ($subGrandTotal * ($request->discount / 100));
-                    $GrandTotal = $sumDisc + ($sumDisc * ($request->tax / 100));
-
                     //update subGrandTotal & Grand Total
-                    $salesSum = DB::table('sales')
-                                ->where('code', $code)
-                                ->update([
-                                    'sub_total' => $subGrandTotal,
-                                    'total' => $GrandTotal,
-                                    'created_at' => Carbon::now(),
-                                ]);
-                    $cart = DB::table('carts')->where([
-                                ['table', $request->table]
-                            ]);
-                    if ($cart->count() > 0) {
-                        $deleteCartDetails = DB::table('cart_details')->where([
-                            ['cart_id', $cart->first()->id],
-                        ])->delete();
-                        $deleteCart = $cart->delete();
-                    }
+                    // $salesSum = DB::table('sales')
+                    //             ->where('code', $code)
+                    //             ->update([
+                    //                 'sub_total' => $subGrandTotal,
+                    //                 'total' => $GrandTotal,
+                    //                 'created_at' => Carbon::now(),
+                    //             ]);
+                    // $cart = DB::table('carts')->where([
+                    //             ['table', $request->table]
+                    //         ]);
+                    // if ($cart->count() > 0) {
+                    //     $deleteCartDetails = DB::table('cart_details')->where([
+                    //         ['cart_id', $cart->first()->id],
+                    //     ])->delete();
+                    //     $deleteCart = $cart->delete();
+                    // }
 
-                    $get_last_nomor_jurnal = DB::table('pos_jurnal_umum')->orderBy('id', 'desc')->first();
+                    // $get_last_nomor_jurnal = DB::table('pos_jurnal_umum')->orderBy('id', 'desc')->first();
 
-                    $new_number = '';
-                    if($get_last_nomor_jurnal){
-                        if($get_last_nomor_jurnal->no_jurnal_umum != ""){
-                            $explode_nomor = explode("-", $get_last_nomor_jurnal->no_jurnal_umum);
-                            $get_nomor = $explode_nomor[1];
-                            $count_number = (int)$get_nomor + 1;
+                    // $new_number = '';
+                    // if($get_last_nomor_jurnal){
+                    //     if($get_last_nomor_jurnal->no_jurnal_umum != ""){
+                    //         $explode_nomor = explode("-", $get_last_nomor_jurnal->no_jurnal_umum);
+                    //         $get_nomor = $explode_nomor[1];
+                    //         $count_number = (int)$get_nomor + 1;
                             
-                            $new_number = sprintf("%05d", $count_number);
-                        } else {
-                            $new_number = '00001';
-                        }
-                    } else {
-                        $new_number = '00001';
-                    }
-                    $generate_nomor_jurnal = "NJU-".$new_number;
+                    //         $new_number = sprintf("%05d", $count_number);
+                    //     } else {
+                    //         $new_number = '00001';
+                    //     }
+                    // } else {
+                    //     $new_number = '00001';
+                    // }
+                    // $generate_nomor_jurnal = "NJU-".$new_number;
                     
-                    $disc = $subGrandTotal * ($request->discount / 100);
-                    $tax = $sumDisc * ($request->tax / 100);
-                    $pendapatan = $subGrandTotal - $disc;
-                    $kas = $pendapatan + $tax - $disc;
+                    // $disc = $subGrandTotal * ($request->discount / 100);
+                    // $tax = $sumDisc * ($request->tax / 100);
+                    // $pendapatan = $subGrandTotal - $disc;
+                    // $kas = $pendapatan + $tax - $disc;
 
-                    $akunKas = DB::table('chart_of_accounts')->where('code_account_default', '1.01.01.000.00')->first()->id;
-                    $akunDiskon = DB::table('chart_of_accounts')->where('code_account_default', '4.05.00.000.00')->first()->id;
-                    $akunPendapatan = DB::table('chart_of_accounts')->where('code_account_default', '4.00.00.000.00')->first()->id;
-                    $akunPajak = DB::table('chart_of_accounts')->where('code_account_default', '2.01.03.001.00')->first()->id;
+                    // $akunKas = DB::table('chart_of_accounts')->where('code_account_default', '1.01.01.000.00')->first()->id;
+                    // $akunDiskon = DB::table('chart_of_accounts')->where('code_account_default', '4.05.00.000.00')->first()->id;
+                    // $akunPendapatan = DB::table('chart_of_accounts')->where('code_account_default', '4.00.00.000.00')->first()->id;
+                    // $akunPajak = DB::table('chart_of_accounts')->where('code_account_default', '2.01.03.001.00')->first()->id;
                     
-                    DB::table('pos_jurnal_umum')->insert([
-                            [
-                                'no_jurnal_umum' => $generate_nomor_jurnal,
-                                'tgl_transaksi' => Carbon::now(),
-                                'no_transaksi' => $code,
-                                'tipe' => 'penjualan',
-                                'kode_akun' => $akunKas,
-                                'debit' => $kas,
-                                'kredit' => 0,
-                                'sts_buku_besar' => 0,
-                                'keterangan' => '-',
-                                'sts_doc' => 0,
-                                'created_at' => Carbon::now(),
-                            ],[
-                                'no_jurnal_umum' => $generate_nomor_jurnal,
-                                'tgl_transaksi' => Carbon::now(),
-                                'no_transaksi' => $code,
-                                'tipe' => 'penjualan',
-                                'kode_akun' => $akunDiskon,
-                                'debit' => $disc,
-                                'kredit' => 0,
-                                'sts_buku_besar' => 0,
-                                'keterangan' => '-',
-                                'sts_doc' => 0,
-                                'created_at' => Carbon::now(),
-                            ],[
-                                'no_jurnal_umum' => $generate_nomor_jurnal,
-                                'tgl_transaksi' => Carbon::now(),
-                                'no_transaksi' => $code,
-                                'tipe' => 'penjualan',
-                                'kode_akun' => $akunPendapatan,
-                                'debit' => 0,
-                                'kredit' => $pendapatan,
-                                'sts_buku_besar' => 0,
-                                'keterangan' => '-',
-                                'sts_doc' => 0,
-                                'created_at' => Carbon::now(),
-                            ],[
-                                'no_jurnal_umum' => $generate_nomor_jurnal,
-                                'tgl_transaksi' => Carbon::now(),
-                                'no_transaksi' => $code,
-                                'tipe' => 'penjualan',
-                                'kode_akun' => $akunPajak,
-                                'debit' => 0,
-                                'kredit' => $tax,
-                                'sts_buku_besar' => 0,
-                                'keterangan' => '-',
-                                'sts_doc' => 0,
-                                'created_at' => Carbon::now(),
-                            ]
-                        ]);
+                    // DB::table('pos_jurnal_umum')->insert([
+                    //         [
+                    //             'no_jurnal_umum' => $generate_nomor_jurnal,
+                    //             'tgl_transaksi' => Carbon::now(),
+                    //             'no_transaksi' => $code,
+                    //             'tipe' => 'penjualan',
+                    //             'kode_akun' => $akunKas,
+                    //             'debit' => $kas,
+                    //             'kredit' => 0,
+                    //             'sts_buku_besar' => 0,
+                    //             'keterangan' => '-',
+                    //             'sts_doc' => 0,
+                    //             'created_at' => Carbon::now(),
+                    //         ],[
+                    //             'no_jurnal_umum' => $generate_nomor_jurnal,
+                    //             'tgl_transaksi' => Carbon::now(),
+                    //             'no_transaksi' => $code,
+                    //             'tipe' => 'penjualan',
+                    //             'kode_akun' => $akunDiskon,
+                    //             'debit' => $disc,
+                    //             'kredit' => 0,
+                    //             'sts_buku_besar' => 0,
+                    //             'keterangan' => '-',
+                    //             'sts_doc' => 0,
+                    //             'created_at' => Carbon::now(),
+                    //         ],[
+                    //             'no_jurnal_umum' => $generate_nomor_jurnal,
+                    //             'tgl_transaksi' => Carbon::now(),
+                    //             'no_transaksi' => $code,
+                    //             'tipe' => 'penjualan',
+                    //             'kode_akun' => $akunPendapatan,
+                    //             'debit' => 0,
+                    //             'kredit' => $pendapatan,
+                    //             'sts_buku_besar' => 0,
+                    //             'keterangan' => '-',
+                    //             'sts_doc' => 0,
+                    //             'created_at' => Carbon::now(),
+                    //         ],[
+                    //             'no_jurnal_umum' => $generate_nomor_jurnal,
+                    //             'tgl_transaksi' => Carbon::now(),
+                    //             'no_transaksi' => $code,
+                    //             'tipe' => 'penjualan',
+                    //             'kode_akun' => $akunPajak,
+                    //             'debit' => 0,
+                    //             'kredit' => $tax,
+                    //             'sts_buku_besar' => 0,
+                    //             'keterangan' => '-',
+                    //             'sts_doc' => 0,
+                    //             'created_at' => Carbon::now(),
+                    //         ]
+                    //     ]);
 
                     DB::commit();
                     $code = ['code_sales' => $code];
@@ -380,7 +356,7 @@ class POSControllers extends Controller
             }
             return response()->json($result);
         } else {
-            // tidak memiliki otorisasi
+            //Tidak memiliki otorisasi
             session()->flash('notifikasi', [
                 "icon" => config('global.errors.E002.status'),
                 "title" => config('global.errors.E002.code'),
@@ -1085,9 +1061,9 @@ class POSControllers extends Controller
                 return redirect('/sales/create');
             }
             $sales_details = DB::table('sales_details')
-                ->leftJoin('master_items', 'sales_details.item_id', '=', 'master_items.id')
+                ->leftJoin('SAPOITM', 'sales_details.itemcode', '=', 'SAPOITM.itemcode')
                 ->select([
-                    'master_items.nama_item as item_name',
+                    'SAPOITM.itemname as item_name',
                     'sales_details.sell_price as sell_price',
                     'sales_details.quantity as quantity',
                     'sales_details.sub_total as sub_total'

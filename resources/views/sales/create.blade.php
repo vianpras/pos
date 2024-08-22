@@ -977,7 +977,19 @@
             let pMethodDetails = $("#pMethodDetails").val();
             formData = formData + '&grandtotal='+ total;
             formData = formData + '&charge='+ charge;
-            formData = formData + '&pay='+ pay;
+            if(pMethod == "TransferCash"){
+                let cash = $("#cash_amount").unmask().val();
+                let nonCash = $("#transfer_ammount").unmask().val();
+                
+                formData = formData + '&payCash='+ cash;
+                formData = formData + '&payNonCash='+ nonCash;
+            }else if(pMethod == "Cash"){
+                formData = formData + '&payCash='+ pay;
+                formData = formData + '&payNonCash=0';
+            } else {
+                formData = formData + '&payCash=0';
+                formData = formData + '&payNonCash='+ pay;
+            }
             formData = formData + '&cashBack='+ cashBack;
             formData = formData + '&pMethod='+ pMethod;
             formData = formData + '&pMethodDetail='+ pMethodDetails;
