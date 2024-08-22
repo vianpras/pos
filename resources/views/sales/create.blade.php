@@ -38,6 +38,21 @@
                                         <label for="membership_code">Checker</label>
                                         <input type="text" class="form-control form-control-sm" name="code" id="code" placeholder="Checker" readonly>
                                     </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="membership_code">Discount(%)</label>
+                                                <input type="text" class="form-control form-control-sm" onchange="calcGrand()" value="0" name="discount" id="discount" placeholder="Discount">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="membership_code">Tax(%)</label><br>
+                                                {{-- <input type="checkbox" name="tax" class="switchBs" id="tax" value="1" checked data-bootstrap-switch data-off-color="secondary" data-on-text="ON" data-off-text="OFF" data-on-color="success"> --}}
+                                                <input type="text" class="form-control form-control-sm" onchange="calcGrand()" value="0" name="tax" id="tax" placeholder="Tax">
+                                            </div>
+                                        </div>
+                                    </div>
                                 </section>
                             </div>
                         </div>
@@ -76,8 +91,8 @@
                                     <span class="h5 m-0 float-left text-secondary">Diskon</span>
                                 </div>
                                 <div class="col align-self-center">
-                                    <input type="hidden" name="discount" id="discount" value="0">
-                                    <span class="h5 m-0 float-right text-secondary" id="discount_view">
+                                    <input type="hidden" name="grand_discount" id="grand_discount" value="0">
+                                    <span class="h5 m-0 float-right text-secondary" id="grand_discount_view">
                                         {{ Helper::formatNumber('0', 'rupiah') }}
                                     </span>
                                 </div>
@@ -87,8 +102,8 @@
                                     <span class="h5 m-0 float-left text-secondary">Pajak</span>
                                 </div>
                                 <div class="col align-self-center">
-                                    <input type="hidden" name="tax" id="tax" value="0">
-                                    <span class="h5 m-0 float-right text-secondary" id="tax_view">
+                                    <input type="hidden" name="grand_tax" id="grand_tax" value="0">
+                                    <span class="h5 m-0 float-right text-secondary" id="grand_tax_view">
                                         {{ Helper::formatNumber('0', 'rupiah') }}
                                     </span>
                                 </div>
@@ -120,7 +135,7 @@
                                     <table class="table table-sm mt-2">
                                         <thead>
                                             <tr>
-                                                <th width="18%">Item Info</th>
+                                                <th width="24%">Item Info</th>
                                                 <th>Token Remarks</th>
                                                 <th width="5.7%">Qty</th>
                                                 <th width="13%">Price List</th>
@@ -185,7 +200,6 @@
     });
 
     const setBusinessPartner = (cardcode) => {
-        console.log(cardcode);
         let href = '{{ route("master.customer.bycode") }}';
         $.ajax({
             url: href,
@@ -197,7 +211,6 @@
                 doBeforeSend(true)
             },
             success: function(result) {
-                console.log(result);
                 $("#custname").val(result.cust_details.cardname);
                 $("#custphone").val((result.cust_details.phone) ? result.cust_details.phone : '0000');
             },
@@ -313,6 +326,7 @@
         let itemcode = $('#itemcode_modal').val();
         let itemname = $('#itemname_modal').val();
         let pricelist = "{{ $pricelist }}";
+        let pricelist_modal = $('#pricelist_modal').val();
         let price = $('#price_modal_input').val();
         let qty = $('#qty_modal').val();
 
@@ -321,7 +335,7 @@
         
         var output = [];
         $.each(JSON.parse(pricelist.replace(/&quot;/g,'"')), function(key, value){
-            output.push('<option value="'+ value.listnum +'">'+ value.listname +'</option>');
+            output.push('<option value="'+ value.listnum +'" '+((value.listnum == pricelist_modal) ? "selected":"")+'>'+ value.listname +'</option>');
         });
 
         $('#item-list').append(`
@@ -329,13 +343,13 @@
                 <td class="align-middle">
                     <input class="form-control form-control-sm" type="hidden" id="itemcode`+i+`" name="itemcode[]" value="`+itemcode+`">
                     <dt>`+itemcode+`</dt>
-                    <dd style="width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">`+itemname+`</dd>
+                    <dd style="width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">`+itemname+`</dd>
                 </td>
                 <td class="align-middle">
                     <input class="form-control form-control-sm" type="text" name="token_remarks[]">
                 </td>
                 <td class="align-middle">
-                    <input class="form-control form-control-sm" type="number" name="qty[]" id="qty`+i+`" onchange="calcGrand()" value="`+qty+`">
+                    <input class="form-control form-control-sm" type="number" name="qty[]" id="qty`+i+`" onchange="calcSum(`+i+`)" value="`+qty+`">
                 </td>
                 <td class="align-middle">
                     <select class="form-control form-control-sm" name="price_list[]" id="price_list`+i+`" onchange="priceList('`+itemcode+`', this.value, `+i+`)" style="appearance: none;">
@@ -355,8 +369,9 @@
                 <td class="align-middle">
                     <input class="form-control form-control-sm" type="number" name="disc3[]" id="disc3`+i+`" onchange="calcSum(`+i+`)" value="0" readonly>
                 </td>
-                <td class="align-middle">
-                    <input class="form-control form-control-sm" type="text" name="subtotal[]" id="subtotal`+i+`" value="0" readonly>
+                <td class="align-middle text-right">
+                    <input class="form-control form-control-sm" type="hidden" name="subtotal[]" id="subtotal`+i+`" value="0" readonly>
+                    <span id="subtotal_show`+i+`"></span>
                 </td>
                 <td class="align-middle">
                     <button type="button" name="remove" id="`+i+`" class="btn btn-sm btn-danger btn_remove"><span class="fas fa-trash"></span></button>
@@ -399,7 +414,7 @@
                     $("#price_show"+index).html(maskRupiah("", 0));
                     $("#price"+index).val(0);                    
                 }
-                calcGrand()
+                calcSum(index)
             },
             error: function(jqXHR, testStatus, error) {
                 popToast('error', 'E999 - Terjadi Kesalah Komunikasi Server');
@@ -455,14 +470,17 @@
         }
 
         $("input#subtotal"+i).val(subtotal);
+        $("#subtotal_show"+i).html(maskRupiah("", subtotal));
         calcGrand();
     }
 
     const calcGrand = () => {
         let subGrandTotalPrice = parseInt(0);
         let grandTotalPrice = parseInt(0);
-        let grandDiscount = $("input#discount").val();
-        let grandTax = $("input#tax").val();
+        let grandDiscount = 0
+        let grandTax = 0;
+        let Discount = $("input#discount").val();
+        let Tax = $("input#tax").val();
 
         $('table > #item-list > tr').each(function() { 
             let rowIndex = $(this).data("id");
@@ -473,6 +491,14 @@
 
         $("#sub_grand_total").val(subGrandTotalPrice);
         maskRupiah("#sub_grand_total_view", subGrandTotalPrice);
+
+        grandDiscount = subGrandTotalPrice * Discount/100;
+        $("#grand_discount").val(grandDiscount);
+        maskRupiah("#grand_discount_view", grandDiscount);
+
+        grandTax = (subGrandTotalPrice-grandDiscount) * Tax/100;
+        $("#grand_tax").val(grandTax);
+        maskRupiah("#grand_tax_view", grandTax);
 
         grandTotalPrice = parseInt(subGrandTotalPrice) - parseInt(grandDiscount) + parseInt(grandTax);
         $("#total").val(grandTotalPrice);
@@ -763,7 +789,6 @@
                         doBeforeSend(true)
                     },
                     success: function(result) {
-                        console.log(result);
                         let htmlOption = "";
                         $.each(result.paymentMethodDetails, function(key, value) {
                             payM = `'`+value.paymentCode+`'`;
@@ -775,6 +800,7 @@
                                 </div>
                             `;
                         });
+
                         $("#payment").html(`
                             <div class="row d-flex justify-content-arround">
                                 <div class="col-12 col-sm-6 col-md-6 col-lg-6 my-1">
@@ -828,7 +854,6 @@
         let total = parseInt($("#total").val());
         let operator = $("#operator").val();
         let nominalNow = $("#setCashBack").val().replace(/(\d)[\s.]+(?=\d)/g, '$1');
-
         let bayar = 0;
 
         if(operator == "+"){
@@ -881,7 +906,6 @@
         total = total - parseInt($("#charge").val());
 
         let paymentCharge =  total * parseFloat(charge)/100;
-        console.log(paymentCharge);
         var newTotal = total + paymentCharge;
         $("#charge").val(parseInt(paymentCharge));
         $("#total").val(newTotal); 
@@ -913,148 +937,86 @@
         let href = "/sales/store/" + action;
         let formData = $("form").serialize();
 
-    swal
-        .fire({
-            title: action == "simpan" ? "Apakah Ingin Menyimpan" : "Pilih Pembayaran",
-            icon: "question",
-            width: 1000,
-            showDenyButton: true,
-            showCancelButton: true,
-            confirmButtonColor: "#20C997",
-            denyButtonColor: "#007BFF",
-            cancelButtonColor: "#DC3545",
-            confirmButtonText: action == "simpan" ? "Simpan" : "Simpan & Cetak",
-            denyButtonText: action == "simpan" ? "Batal" : "Simpan",
-            cancelButtonText: "Batal",
-            html: `
-            <div class="row py-2" style="background-color: #2e5781; border-radius: 6px;">
-                <div class="col-sm-4 col-4">
-                    <div class="description-block border-right">
-                        <span class="description-text text-white">TOTAL PENJUALAN</span>
-                        <p class="text-secondary"></p>
-                        <input type="hidden" name="grandtotal" id="grandtotal" value="0">
-                        <input type="hidden" name="charge" id="charge" value="0">
-                        <h1 class="description-header text-white" id="total_penjualan">${maskRupiah("", $("#total").val())}</h1>
+        swal.fire({
+                title: action == "simpan" ? "Apakah Ingin Menyimpan" : "Pilih Pembayaran",
+                icon: "question",
+                width: 1000,
+                showDenyButton: true,
+                showCancelButton: true,
+                confirmButtonColor: "#20C997",
+                denyButtonColor: "#007BFF",
+                cancelButtonColor: "#DC3545",
+                confirmButtonText: action == "simpan" ? "Simpan" : "Simpan & Cetak",
+                denyButtonText: action == "simpan" ? "Batal" : "Simpan",
+                cancelButtonText: "Batal",
+                html: `
+                <div class="row py-2" style="background-color: #2e5781; border-radius: 6px;">
+                    <div class="col-sm-4 col-4">
+                        <div class="description-block border-right">
+                            <span class="description-text text-white">TOTAL PENJUALAN</span>
+                            <p class="text-secondary"></p>
+                            <input type="hidden" name="grandtotal" id="grandtotal" value="0">
+                            <input type="hidden" name="charge" id="charge" value="0">
+                            <h1 class="description-header text-white" id="total_penjualan">${maskRupiah("", $("#total").val())}</h1>
+                        </div>
+                        <!-- /.description-block -->
                     </div>
-                    <!-- /.description-block -->
-                </div>
-                <!-- /.col -->
+                    <!-- /.col -->
 
-                <div class="col-sm-4 col-4">
-                    <div class="description-block border-right">
-                        <span class="description-text text-white">TOTAL DIBAYAR</span>
-                        <p class="text-secondary"></p>
-                        <input type="text" class="form-control form-control uang text-white" oninput="setCashBack()" placeholder="Bayar" id="setCashBack" name="setCashBack" style="background-color: transparent; font-size: 17px; font-weight: bold; text-align: center; margin-top: -10px; border: none;" autofocus required>
+                    <div class="col-sm-4 col-4">
+                        <div class="description-block border-right">
+                            <span class="description-text text-white">TOTAL DIBAYAR</span>
+                            <p class="text-secondary"></p>
+                            <input type="text" class="form-control form-control uang text-white" oninput="setCashBack()" placeholder="Bayar" id="setCashBack" name="setCashBack" style="background-color: transparent; font-size: 17px; font-weight: bold; text-align: center; margin-top: -10px; border: none;" autofocus required>
+                        </div>
+                        <!-- /.description-block -->
                     </div>
-                    <!-- /.description-block -->
-                </div>
-                <!-- /.col -->
-                                
-                <div class="col-sm-4 col-4">
-                    <div class="description-block">
-                        <span class="description-text text-white">TOTAL KEMBALIAN</span>
-                        <p class="text-secondary"></p>
-                        <input type="text" class="form-control form-control text-white" placeholder="Kembali" id="cashBack" style="background-color: transparent; font-size: 17px; font-weight: bold; text-align: center; margin-top: -10px; border: none;" readonly>
+                    <!-- /.col -->
+                                    
+                    <div class="col-sm-4 col-4">
+                        <div class="description-block">
+                            <span class="description-text text-white">TOTAL KEMBALIAN</span>
+                            <p class="text-secondary"></p>
+                            <input type="text" class="form-control form-control text-white" placeholder="Kembali" id="cashBack" style="background-color: transparent; font-size: 17px; font-weight: bold; text-align: center; margin-top: -10px; border: none;" readonly>
+                        </div>
+                        <!-- /.description-block -->
                     </div>
-                    <!-- /.description-block -->
                 </div>
-            </div>
-            <div class="row py-2">
-                <div class="col-sm-3 scrollYMenu" id="payment_method" style="background-color: #c5c5c521; padding: 12px; height: 50vh"></div>
-                <div class="col-sm-9 scrollYMenu" id="payment" style="padding: 12px; height: 50vh"></div>
-            </div>
-            <input type="hidden" class="form-control form-control" id="pMethod" name="pMethod" readonly>
-            <input type="hidden" class="form-control form-control" id="pMethodDetails" name="pMethodDetails" readonly>
-        `,
-        })
-        .then((resultSwal1) => {
-            let pay = $("#setCashBack").unmask().val();
-            let total = $("#total").unmask().val();
-            let grandtotal = $("#grandtotal").unmask().val();
-            let charge = $("#charge").unmask().val();
-            let cashBack = pay - total;
-            let pMethod = $("#pMethod").val();
-            let pMethodDetails = $("#pMethodDetails").val();
-            formData = formData + '&grandtotal='+ total;
-            formData = formData + '&charge='+ charge;
-            if(pMethod == "TransferCash"){
-                let cash = $("#cash_amount").unmask().val();
-                let nonCash = $("#transfer_ammount").unmask().val();
-                
-                formData = formData + '&payCash='+ cash;
-                formData = formData + '&payNonCash='+ nonCash;
-            }else if(pMethod == "Cash"){
-                formData = formData + '&payCash='+ pay;
-                formData = formData + '&payNonCash=0';
-            } else {
-                formData = formData + '&payCash=0';
-                formData = formData + '&payNonCash='+ pay;
-            }
-            formData = formData + '&cashBack='+ cashBack;
-            formData = formData + '&pMethod='+ pMethod;
-            formData = formData + '&pMethodDetail='+ pMethodDetails;
+                <div class="row py-2">
+                    <div class="col-sm-3 scrollYMenu" id="payment_method" style="background-color: #c5c5c521; padding: 12px; height: 50vh"></div>
+                    <div class="col-sm-9 scrollYMenu" id="payment" style="padding: 12px; height: 50vh"></div>
+                </div>
+                <input type="hidden" class="form-control form-control" id="pMethod" name="pMethod" readonly>
+                <input type="hidden" class="form-control form-control" id="pMethodDetails" name="pMethodDetails" readonly>`,
+            })
+            .then((resultSwal1) => {
+                let pay = $("#setCashBack").unmask().val();
+                let total = $("#total").unmask().val();
+                let grandtotal = $("#grandtotal").unmask().val();
+                let charge = $("#charge").unmask().val();
+                let cashBack = pay - total;
+                let pMethod = $("#pMethod").val();
+                let pMethodDetails = $("#pMethodDetails").val();
+                formData = formData + '&grandtotal='+ total;
+                formData = formData + '&charge='+ charge;
+                if(pMethod == "TransferCash"){
+                    let cash = $("#cash_amount").unmask().val();
+                    let nonCash = $("#transfer_ammount").unmask().val();
+                    
+                    formData = formData + '&payCash='+ cash;
+                    formData = formData + '&payNonCash='+ nonCash;
+                }else if(pMethod == "Cash"){
+                    formData = formData + '&payCash='+ pay;
+                    formData = formData + '&payNonCash=0';
+                } else {
+                    formData = formData + '&payCash=0';
+                    formData = formData + '&payNonCash='+ pay;
+                }
+                formData = formData + '&cashBack='+ cashBack;
+                formData = formData + '&pMethod='+ pMethod;
+                formData = formData + '&pMethodDetail='+ pMethodDetails;
 
-            if (resultSwal1.isConfirmed && pay >= total) {
-                $.ajax({
-                    url: href,
-                    method: "POST",
-                    data: formData,
-                    beforeSend: function() {
-                        doBeforeSend(true)
-                    },
-                    success: function(res) {
-                        if (res.status == "success") {
-                            if (action == "bayar") {
-                                // forward ke cetak
-                                let pay = $("#setCashBack").unmask().val();
-                                let total = $("#total").unmask().val();
-                                let cashBack = pay - total;
-                                let pMethod = $("#pMethod").val();
-                                let win = window.open(
-                                    "{{ url('') }}/sales/print/" +
-                                    res.code_sales +
-                                    "?pay=" +
-                                    pay +
-                                    "&cashback=" +
-                                    cashBack +
-                                    "&pMethod=" +
-                                    pMethod
-                                );
-                                let timer = setInterval(function() {
-                                    if (win.closed) {
-                                        clearInterval(timer);
-                                        window.location =
-                                            "{{ url('/sales/create') }}";
-                                    }
-                                }, 500);
-                            } else {
-                                //  forward ke new sales
-                                window.location = "{{ url('/sales/create') }}";
-                            }
-                        } else {
-                            if (res.code == "E017") {} else {
-                                Swal.fire(
-                                    res.status == "success" ? "Berhasil !" : "Gagal !",
-                                    res.message,
-                                    res.status
-                                );
-                            }
-                        }
-                    },
-                    error: function(jqXHR, testStatus, error) {
-                        popToast('error', 'E999 - Terjadi Kesalah Komunikasi Server');
-                        doBeforeSend(false);
-                    },
-
-                    complete: function() {
-                        // selesai
-                        doBeforeSend(false);
-                    },
-                    timeout: 8000,
-                });
-            }
-            if (resultSwal1.isDenied && pay >= total) {
-                if (action == "bayar") {
+                if (resultSwal1.isConfirmed && pay >= total) {
                     $.ajax({
                         url: href,
                         method: "POST",
@@ -1064,27 +1026,32 @@
                         },
                         success: function(res) {
                             if (res.status == "success") {
-                                swal
-                                    .fire({
-                                        title: res.status == "success" ? "Berhasil !" :
-                                            "Gagal !",
-                                        text: res.message,
-                                        icon: res.status,
-                                        confirmButtonColor: "#3085d6",
-                                        cancelButtonColor: "#d33",
-                                        confirmButtonText: "Ok !",
-                                    })
-                                    .then((resultSwal2) => {
-                                        if (resultSwal2.isConfirmed) {
-                                            window.location =
-                                                "{{ url('/sales/create') }}";
+                                if (action == "bayar") {
+                                    // forward ke cetak
+                                    let pay = $("#setCashBack").unmask().val();
+                                    let total = $("#total").unmask().val();
+                                    let cashBack = pay - total;
+                                    let pMethod = $("#pMethod").val();
+                                    let win = window.open(
+                                        "{{ url('') }}/sales/print/" + res.code_sales +
+                                        "?pay=" + pay +
+                                        "&cashback=" + cashBack +
+                                        "&pMethod=" + pMethod
+                                    );
+                                    let timer = setInterval(function() {
+                                        if (win.closed) {
+                                            clearInterval(timer);
+                                            window.location = "{{ url('/sales/create') }}";
                                         }
-                                    });
+                                    }, 500);
+                                } else {
+                                    //  forward ke new sales
+                                    window.location = "{{ url('/sales/create') }}";
+                                }
                             } else {
                                 if (res.code == "E017") {} else {
                                     Swal.fire(
-                                        res.status == "success" ? "Berhasil !" :
-                                        "Gagal !",
+                                        res.status == "success" ? "Berhasil !" : "Gagal !",
                                         res.message,
                                         res.status
                                     );
@@ -1093,24 +1060,69 @@
                         },
                         error: function(jqXHR, testStatus, error) {
                             popToast('error', 'E999 - Terjadi Kesalah Komunikasi Server');
-                            doBeforeSend(false)
+                            doBeforeSend(false);
                         },
 
                         complete: function() {
                             // selesai
-                            doBeforeSend(false)
+                            doBeforeSend(false);
                         },
                         timeout: 8000,
                     });
                 }
-            }
-            if (
-                (resultSwal1.isConfirmed && pay < total) ||
-                (resultSwal1.isDenied && pay < total)
-            ) {
-                Swal.fire("Gagal !", "Uang bayar kurang", "error");
-            }
-        });
+                if (resultSwal1.isDenied && pay >= total) {
+                    if(action == "bayar"){
+                        $.ajax({
+                            url: href,
+                            method: "POST",
+                            data: formData,
+                            beforeSend: function() {
+                                doBeforeSend(true)
+                            },
+                            success: function(res) {
+                                if (res.status == "success") {
+                                    swal.fire({
+                                            title: res.status == "success" ? "Berhasil !" : "Gagal !",
+                                            text: res.message,
+                                            icon: res.status,
+                                            confirmButtonColor: "#3085d6",
+                                            cancelButtonColor: "#d33",
+                                            confirmButtonText: "Ok !",
+                                        })
+                                        .then((resultSwal2) => {
+                                            if(resultSwal2.isConfirmed) {
+                                                window.location = "{{ url('/sales/create') }}";
+                                            }
+                                        });
+                                } else {
+                                    if (res.code == "E017") {} else {
+                                        Swal.fire(
+                                            res.status == "success" ? "Berhasil !" :
+                                            "Gagal !",
+                                            res.message,
+                                            res.status
+                                        );
+                                    }
+                                }
+                            },
+                            error: function(jqXHR, testStatus, error) {
+                                popToast('error', 'E999 - Terjadi Kesalah Komunikasi Server');
+                                doBeforeSend(false)
+                            },
+
+                            complete: function() {
+                                // selesai
+                                doBeforeSend(false)
+                            },
+                            timeout: 8000,
+                        });
+                    }
+                }
+                
+                if((resultSwal1.isConfirmed && pay < total) || (resultSwal1.isDenied && pay < total)) {
+                    Swal.fire("Gagal !", "Uang bayar kurang", "error");
+                }
+            });
     };
 </script>
 @endsection

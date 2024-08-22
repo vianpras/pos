@@ -18,7 +18,6 @@
         .eightpx {
             font-size: 6pt;
             letter-spacing: -0.7px;
-
         }
 
         .ninepx {
@@ -75,20 +74,29 @@
         <table>
             <tbody>
                 <tr>
-                    <td colspan="4" align="center">
+                    <td colspan="3" align="center">
                         <img src="/img/configurations/1" height="50px"/>
                     </td>
                 </tr>
                 <tr>
-                    <td colspan="4" align="center" style="padding-top: 2mm;padding-bottom: 2mm;">
+                    <td colspan="3" align="center" style="padding-top: 2mm;padding-bottom: 2mm;">
                         <b class="twentenpx">{{ $company->name }}</b></br></br>
                         {!! $company->address1 !!}</br>
                         {{ $company->mobile }} - {{ $company->email }}</br>
                     </td>
                 </tr>
                 <tr>
-                    <td colspan="4">
+                    <td colspan="3">
                         <hr>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="eightpx" align="left" style="width: 20px;">
+                        No. 
+                    </td>
+                    <td style="width: 2px;">:</td>
+                    <td class="eightpx">
+                        {{$sales->code}}
                     </td>
                 </tr>
                 <tr>
@@ -98,9 +106,6 @@
                     <td>:</td>
                     <td class="eightpx">
                         {{ date('d/m/Y', strtotime($sales->date_order)) }}
-                    </td>
-                    <td class="eightpx" align="left">
-                        No.: {{$sales->code}}
                     </td>
                 </tr>
                 <tr>
@@ -113,12 +118,6 @@
                     <td>
                         {{(Auth::user()->name)=='administrator'? 'admin' : Auth::user()->name}}
                     </td>
-                    <td class="eightpx" align="left">
-                        Pembayaran : {{ $sales->pMethod.' '.(($sales->pMethodDetail) ? $sales->pMethodDetail : "") }}
-                    </td>
-                    {{-- <td class="eightpx" align="left">
-                        Pelanggan : {{$sales->customer}}
-                    </td> --}}
                 </tr>
                 <tr>
                     <td class="eightpx" align="left">
@@ -128,10 +127,15 @@
                     <td>
                         {{ $sales->customer }}
                     </td>
-
-                    {{-- <td class="eightpx" align="left">
-                        Member ID : {{ is_null($sales->membership_code) ? '-': '#'.$sales->membership_code  }}
-                    </td> --}}
+                </tr>
+                <tr>
+                    <td class="eightpx" align="left">
+                        Pembayaran
+                    </td>
+                    <td>:</td>
+                    <td>
+                        {{ $sales->pMethod.' '.(($sales->pMethodDetail) ? $sales->pMethodDetail : "") }}
+                    </td>
                 </tr>
 
             </tbody>
@@ -162,13 +166,17 @@
                 @foreach ($sales_details as $sales_detail)
                 <tr style="">
                     <td class="eightpx" style="width:45%; padding-bottom: 2mm; padding-right: 1mm">
-                        {{$sales_detail->item_name}}</td>
+                        {{$sales_detail->item_name}}
+                    </td>
                     <td class="eightpx" style="width:5%; padding-bottom: 2mm; padding-right: 1mm" align="center">
-                        {{Helper::formatNumber($sales_detail->quantity,'')}}</td>
+                        {{Helper::formatNumber($sales_detail->quantity,'')}}
+                    </td>
                     <td class="eightpx" style="width:20%; padding-bottom: 2mm; padding-right: 1mm" align="right">
-                        {{Helper::formatNumber($sales_detail->sell_price,'norp')}}</td>
+                        {{Helper::formatNumber($sales_detail->sell_price,'norp')}}
+                    </td>
                     <td class="eightpx" style="width:30%; padding-bottom: 2mm; padding-right: 1mm" align="right">
-                        {{Helper::formatNumber($sales_detail->sub_total,'norp')}}</td>
+                        {{Helper::formatNumber($sales_detail->sub_total,'norp')}}
+                    </td>
                 </tr style="padding-bottom: 2mm">
                 @endforeach
                 <tr>
@@ -182,20 +190,23 @@
                         Jumlah Total :
                     </td>
                     <td colspan='2' class="ninepx" style='text-align:right; '>
-                        {{Helper::formatNumber($sales->sub_total,'rupiah')}}</td>
+                        {{Helper::formatNumber($sales->sub_total,'rupiah')}}
+                    </td>
                 </tr>
                 <tr>
                     <td colspan='2' align="right" class="ninepx">
                         Diskon :
                     </td>
                     <td colspan='2' class="ninepx" style='text-align:right;'>
-                        {{Helper::formatNumber($discount,'rupiah')}}</td>
+                        {{Helper::formatNumber($discount,'rupiah')}}
+                    </td>
                 </tr>
                 <tr>
                     <td colspan='2' align="right" class="ninepx">
                         Pajak :
                     </td>
-                    <td colspan='2' class="ninepx" style='text-align:right;'>{{Helper::formatNumber($tax,'rupiah')}}
+                    <td colspan='2' class="ninepx" style='text-align:right;'>
+                        {{Helper::formatNumber($tax,'rupiah')}}
                     </td>
                 </tr>
                 <tr>
@@ -203,15 +214,15 @@
                         Grand Total :
                     </td>
                     <td colspan='2' class="ninepx" style='text-align:right;'>
-                        {{Helper::formatNumber($sales->total,'rupiah')}}</td>
+                        {{Helper::formatNumber($sales->total,'rupiah')}}
+                    </td>
                 </tr>
                 <tr>
                     <td colspan='2' align="right" class="ninepx">
                         Bayar :
                     </td>
                     <td colspan='2' class="ninepx" style='text-align:right;'>
-                        {{-- {{ request()->has('pay') ? Helper::formatNumber(request()->get('pay'),'rupiah') : 'n/a' }}</br> --}}
-                        {{  Helper::formatNumber($sales->payCash,'rupiah') }}</br>
+                        {{  Helper::formatNumber($sales->payCash+$sales->payNonCash,'rupiah') }}</br>
                     </td>
                 </tr>
                 <tr>
@@ -219,7 +230,6 @@
                         Kembali :
                     </td>
                     <td colspan='2' class="ninepx" style='text-align:right;'>
-                        {{-- {{ request()->has('cashback') ? Helper::formatNumber(request()->get('cashback'),'rupiah') : 'n/a' }}</br> --}}
                         {{  Helper::formatNumber($sales->cashBack,'rupiah') }}</br>
                     </td>
                 </tr>

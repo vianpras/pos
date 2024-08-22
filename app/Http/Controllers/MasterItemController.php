@@ -50,28 +50,29 @@ class MasterItemController extends Controller
         if (Helper::checkACL('master_item', 'r')) {
             if ($request->ajax()) {
                 // query data
-                $items = DB::table('master_items')->leftJoin('units','master_items.satuan','=','units.id')->select('master_items.*', 'units.name AS nama_satuan');
+                $items = DB::table('SAPOITM');
+                dd($items);
                 return Datatables::of($items)
                     ->addColumn('action', function ($items) {
                         // render column action
                         return view('master.master_items.action', [
-                            'edit_url' => '/',
-                            'show_url' => '/',
-                            'id' => $items->id,
-                            'status' => $items->status,
+                            'edit_url'  => '/',
+                            'show_url'  => '/',
+                            'id'        => $items->id,
+                            'status'    => $items->status,
                         ]);
                     })
-                    ->filter(function ($query) use ($request) {
-                        if (!empty($request->get('kode_item_filter'))) {
-                            $query->where('master_items.kode_item', $request->kode_item_filter);
-                        }
-                        if (!empty($request->get('nama_item_filter'))) {
-                            $query->where('master_items.nama_item', 'like', "%{$request->nama_item_filter}%");
-                        }
-                        if (!empty($request->get('tipe_filter'))) {
-                            $query->where('master_items.tipe', $request->tipe_filter);
-                        }
-                    })
+                    // ->filter(function ($query) use ($request) {
+                    //     if (!empty($request->get('kode_item_filter'))) {
+                    //         $query->where('master_items.kode_item', $request->kode_item_filter);
+                    //     }
+                    //     if (!empty($request->get('nama_item_filter'))) {
+                    //         $query->where('master_items.nama_item', 'like', "%{$request->nama_item_filter}%");
+                    //     }
+                    //     if (!empty($request->get('tipe_filter'))) {
+                    //         $query->where('master_items.tipe', $request->tipe_filter);
+                    //     }
+                    // })
                     ->rawColumns(['action'])
                     ->make(true);
             } else {
@@ -79,7 +80,7 @@ class MasterItemController extends Controller
                 session()->flash('notifikasi', [
                     "icon" => config('global.errors.E002.status'),
                     "title" => config('global.errors.E002.code'),
-                    "message" =>  config('global.errors.E002.message'),
+                    "message" => config('global.errors.E002.message'),
                 ]);
                 return redirect('dashboard');
             }

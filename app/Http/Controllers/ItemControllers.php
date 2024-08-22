@@ -44,129 +44,34 @@ class ItemControllers extends Controller
     {
         if (Helper::checkACL('master_item', 'r')) {
             if ($request->ajax()) {
-                // query data
-                $items = DB::table('items')
-                    ->leftJoin('categories', 'items.category_id', '=', 'categories.id')
-                    ->leftJoin('units as big_unit', 'items.big_unit_id', '=', 'big_unit.id')
-                    ->leftJoin('units as small_unit', 'items.small_unit_id', '=', 'small_unit.id')
-                    ->select([
-                        'items.id as id',
-                        'items.name as name',
-                        'items.code as code',
-                        'items.buy_price as buy_price',
-                        'items.sell_price as sell_price',
-                        'items.big_quantity as big_quantity',
-                        'items.small_quantity as small_quantity',
-                        'items.status as status',
-                        'big_unit.code as big_unit',
-                        'small_unit.code as small_unit',
-                        'categories.name as category',
-                    ]);
+                $items = DB::table('SAPITM1')
+                        ->leftJoin('SAPOITM', 'SAPITM1.itemcode','=','SAPOITM.itemcode')
+                        ->leftJoin('SAPOPLN', 'SAPITM1.pricelist','=','SAPOPLN.listnum')
+                        ->select(
+                            'SAPOITM.itemcode',
+                            'SAPOITM.itemname',
+                            'SAPITM1.price',
+                            'SAPOPLN.listname'
+                        );
                 return Datatables::of($items)
                     ->addColumn('action', function ($item) {
-                        // render column action
                         return view('master.item.action', [
                             'edit_url' => '/',
                             'show_url' => '/',
-                            'id' => $item->id,
-                            'status' => $item->status,
+                            'id'       => $item->itemcode
                         ]);
                     })
-                    ->editColumn('picture', function ($item) {
-                        // render column picture
-                        $html_code = '<img style="max-width:50px; width:50px; height:50px; margin-right:20px;" id="'.$item->code.'"  class="profile-user-img  img-circle text-center img-fluid" src="/img/items/' . $item->id . '" />';
-                        return $html_code;
-                    })
-                    ->addColumn('small_quantity', function ($item) {
-                        // render column small_quantity
-                        $small_quantity = Helper::formatNumber($item->small_quantity, '') . ' ' . $item->small_unit;
-                        return $small_quantity;
-                    })
-
-                    ->addColumn('buy_price', function ($item) {
+                    ->addColumn('pricing', function ($item) {
                         // render column buy_price
-                        $buy_price = 'Rp. ' . Helper::formatNumber($item->buy_price, '');
+                        $buy_price = 'Rp. ' . Helper::formatNumber($item->price, '');
                         return $buy_price;
                     })
-
-                    ->addColumn('sell_price', function ($item) {
-                        // render column sell_price
-                        $sell_price = 'Rp. ' . Helper::formatNumber($item->sell_price, '');
-                        return $sell_price;
-                    })
-                    ->addColumn('big_quantity', function ($item) {
-                        // render column big_quantity
-                        $big_quantity = Helper::formatNumber($item->big_quantity, '') . ' ' . $item->big_unit;
-                        return $big_quantity;
-                    })
-                    // ->addColumn('cost_price', function ($item) {
-                    //     return Helper::formatNumber($item->cost_price,'rupiah');
-                    // })
-                    // ->addColumn('sell_price', function ($item) {
-                    //     return Helper::formatNumber($item->sell_price,'rupiah');
-                    // })
-                    ->editColumn('status', function ($item) {
-                        // render column status
-                        $_status = $item->status == '1'
-                            ? '<center><span class="right badge badge-success">Aktif</span></center>'
-                            : '<center><span class="right badge badge-danger">Non-Aktif</span></center>';
-                        return $_status;
-                    })
-
-                    ->filter(function ($query) use ($request) {
-                        if ($request->has('item_name_filter')) {
-                            // default column filter
-                            $query->where('items.name', 'like', "%{$request->item_name_filter}%");
-                        }
-
-                        if ($request->has('item_code_filter')) {
-                            // default column filter
-                            $query->where('items.code', 'like', "%{$request->item_code_filter}%");
-                        }
-                        // dd($request->item_category_filter);
-                        if ($request->has('item_category_filter')) {
-                            // default column filter
-                            if (($request->item_category_filter) == '-1') {
-                                // default column filter
-                                $query->where('items.category_id', ">=", 0);
-                            } else {
-                                // filtered column
-                                $query->where('items.category_id', '=', $request->item_category_filter);
-                            }
-                        }
-                        if ($request->has('item_status_filter')) {
-                            if (($request->item_status_filter) == '-1') {
-                                // default column filter
-                                $query->where('items.status', "<=", 3);
-                            } else {
-                                // filtered column
-                                $query->where('items.status', 'like', "%" . $request->item_status_filter . "%");
-                            }
-                        }
-                        if ($request->has('item_date_filter')) {
-                            if (($request->item_date_filter) == null) {
-                                // default column filter 1 bulan
-                                $query->where([
-                                    ['items.created_at', '>=', Date('Y-m-d', strtotime("-6 months")) . ' 00:00:00'],
-                                    ['items.created_at', '<=',  Date('Y-m-d') . ' 59:59:59'],
-                                ]);
-                            } else {
-                                // filtered column
-                                $dateSeparator = explode(" - ", $request->item_date_filter);
-                                $query->where([
-                                    ['items.created_at', '>=', $dateSeparator[0] . ' 00:00:00'],
-                                    ['items.created_at', '<=', $dateSeparator[1] . ' 59:59:59'],
-                                ]);
-                            }
-                        }
-                    })
-                    ->rawColumns(['action', 'picture', 'status', 'big_quantity', 'small_quantity']) //render raw custom column 
+                    ->rawColumns(['action','pricing']) 
                     ->make(true);
             } else {
-                // tidak memiliki otorisasi
                 session()->flash('notifikasi', [
-                    "icon" => config('global.errors.E002.status'),
-                    "title" => config('global.errors.E002.code'),
+                    "icon"    => config('global.errors.E002.status'),
+                    "title"   => config('global.errors.E002.code'),
                     "message" =>  config('global.errors.E002.message'),
                 ]);
                 return redirect('dashboard');

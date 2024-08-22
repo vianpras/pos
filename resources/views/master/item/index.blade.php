@@ -133,28 +133,20 @@
             <table id="dTable" class="table table-bordered table-striped table-hover" cellspacing="0" width="100%">
                <thead>
                   <tr align="center">
-                     <th width="8%"> Aksi </th>
-                     <th>Gambar</th>
+                     <th width="8%">Aksi</th>
                      <th width="8%">Kode</th>
                      <th>Nama</th>
-                     <th>Harga Beli</th>
-                     <th>Harga Jual</th>
-                     <th>Kategory</th>
-                     <th>Kuantitas</th>
-                     <th>Status</th>
+                     <th>Price List</th>
+                     <th>Harga</th>
                   </tr>
                </thead>
                <tfoot>
                   <tr>
                      <th class='notexport'></th>
-                     <th class="notexport"></th>
                      <th>Kode</th>
                      <th>Nama</th>
-                     <th>Harga Beli</th>
-                     <th>Harga Jual</th>
-                     <th>Kategori</th>
-                     <th>Qty </th>
-                     <th></th>
+                     <th>Price List</th>
+                     <th>Harga</th>
                   </tr>
                </tfoot>
                <tbody class="tBody"></tbody>
@@ -279,14 +271,10 @@
          },
          columns: [
             {data: 'action', name: 'action', 'orderable': false, 'searchable': false},
-            {data: 'picture', name: 'picture', 'orderable': false, 'searchable': false},
-            {data: 'code', name: 'items.code'},
-            {data: 'name', name: 'items.name'},
-            {data: 'buy_price', name: 'items.buy_price'},
-            {data: 'sell_price', name: 'items.sell_price'},
-            {data: 'category', name: 'categories.name'},
-            {data: 'small_quantity', name: 'items.small_quantity'},
-            {data: 'status', name: 'items.status', 'orderable': false, 'searchable': false}
+            {data: 'itemcode', name: 'itemcode'},
+            {data: 'itemname', name: 'itemname'},
+            {data: 'listname', name: 'listname'},
+            {data: 'pricing', name: 'price'}
          ],
       });
 

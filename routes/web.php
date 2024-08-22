@@ -95,13 +95,13 @@ Route::middleware(['auth'])->group(function () {
         // .Hak Akses ACL Route
 
         // Item 
-        Route::get('barang', 'ItemControllers@index')->name('item'); // index item
-        Route::post('barang/datatable', 'ItemControllers@datatable')->name('item.datatable'); // index item
-        Route::get('barang/create', 'ItemControllers@create')->name('item.new'); //modal create item
-        Route::post('barang/store', 'ItemControllers@store')->name('item.store'); //post save item
-        Route::get('barang/edit/{id}', 'ItemControllers@edit')->name('item.edit'); //page edit
-        Route::post('barang/update/{id}', 'ItemControllers@update')->name('item.update'); //post update item
-        Route::post('barang/disable/', 'ItemControllers@disable')->name('disableItem'); //post disable item
+        Route::get('item', 'ItemControllers@index')->name('item'); // index item
+        Route::post('item/datatable', 'ItemControllers@datatable')->name('item.datatable'); // index item
+        Route::get('item/create', 'ItemControllers@create')->name('item.new'); //modal create item
+        Route::post('item/store', 'ItemControllers@store')->name('item.store'); //post save item
+        Route::get('item/edit/{id}', 'ItemControllers@edit')->name('item.edit'); //page edit
+        Route::post('item/update/{id}', 'ItemControllers@update')->name('item.update'); //post update item
+        Route::post('item/disable/', 'ItemControllers@disable')->name('disableItem'); //post disable item
         // .Item 
 
         // Master Items
