@@ -45,27 +45,6 @@
                            <div id="actionFilter" class="mt-2"></div>&nbsp;
                            @endif
                            {{-- Other Action --}}
-                           <div class="btn-group">
-                              <button type="button" class="btn btn-tool" data-toggle="dropdown">
-                                 <i class="fas fa-ellipsis-v fa-lg  text-secondary"></i>
-                              </button>
-                              <div class="dropdown-menu dropdown-menu-right" role="menu">
-                                 @if(Helper::checkACL('master_user', 'c'))
-                                    <a href="#" id="newButton" class="dropdown-item"> <i class="fas fa-plus-square"></i>&nbsp;Data Baru</a>
-                                 @endif
-   
-                                 @if(Helper::checkACL('master_user', 'i'))
-                                    <a href="#" class="dropdown-item"> <i class="fas fa-file-excel"></i> &nbsp; Impor Data</a>
-                                 @endif
-   
-                                 <a href="#" class="dropdown-item" data-card-widget="collapse"><i class="fas fa-search-plus"></i> &nbsp; Tampilkan</a>
-                              </div>
-                           </div>
-                           {{-- Collaps Action --}}
-                           {{-- <button type=" button" class="btn  text-lightblue " data-card-widget="collapse"
-                              title="Collapse">
-                              <i class="fas fa-plus"></i>
-                           </button> --}}
                         </div>
                      </div>
                   </div>
@@ -75,45 +54,22 @@
                   <div class="row">
                      <div class="col-sm-3">
                         <div class="form-group">
-                           <label for="item_name_filter">Nama</label>
-                           <input type="text" class="form-control form-control-sm" name="item_name_filter" id="name" placeholder="Filter Nama">
-                        </div>
-                     </div>
-                     <div class="col-sm-3">
-                        <div class="form-group">
                            <label for="item_code_filter">Kode</label>
-                           <input type="text" class="form-control form-control-sm" name="item_code_filter" id="code" placeholder="Filter Kode">
+                           <input type="text" class="form-control form-control-sm" name="itemcode_filter" id="code" placeholder="Filter Kode">
                         </div>
                      </div>
                      <div class="col-sm-3">
                         <div class="form-group">
-                           <label>Cakupan Tanggal</label>
-                           <div class="input-group">
-                              <div class="input-group-prepend">
-                                 <span class="input-group-text">
-                                    <i class="far fa-calendar-alt"></i>
-                                 </span>
-                              </div>
-                              <input type="text" class="form-control form-control-sm float-right" name="item_date_filter" id="reservation" placeholder="Range Tanggal" autocomplete="off" required>
-                           </div>
+                           <label for="item_name_filter">Nama</label>
+                           <input type="text" class="form-control form-control-sm" name="itemname_filter" id="name" placeholder="Filter Nama">
                         </div>
                      </div>
                      <div class="col-sm-3">
-                        <div class="form-group">
-                           <label for="item_status_filter">Status</label>
-                           <select class="form-control form-control-sm select2" style="width: 100%;" name="item_status_filter">
-                              <option value='1'>Aktif</option>
-                              <option value='0'>Non-Aktif</option>
-                              <option value='-1' selected="selected">Semua</option>
-                           </select>
-                        </div>
-                     </div>
-                     <div class="col-sm-3">
-                        <label for="item_category_filter">Kategori</label>
-                        <select class="form-control form-control-sm select2" style="width: 100%;" name="item_category_filter">
+                        <label for="item_category_filter">Kategori Harga</label>
+                        <select class="form-control form-control-sm select2" style="width: 100%;" name="pricelist_filter">
                            <option value='-1' selected="selected">Semua</option>
                            @foreach ($category as $option)
-                           <option value="{{ $option->id }}">{{ $option->name }}</option>
+                           <option value="{{ $option->listnum }}">{{ $option->listname }}</option>
                            @endforeach
                         </select>
                      </div>
@@ -121,8 +77,6 @@
                </div>
                <div class="card-footer">
                   <div class="float-right ">
-                     {{-- <button type="button" class="btn btn-sm bg-olive my-2"> <i class="fas fa-file-excel"></i>
-                        import</button>&nbsp; --}}
                      <button type="submit" class="btn btn-info btn-sm"><i class="fab fa-searchengin"></i> Cari</button>
                   </div>
                </form>
@@ -134,21 +88,21 @@
                <thead>
                   <tr align="center">
                      <th width="8%">Aksi</th>
-                     <th width="8%">Kode</th>
+                     <th width="12%">Kode</th>
                      <th>Nama</th>
-                     <th>Price List</th>
+                     <th>Kategori Harga</th>
                      <th>Harga</th>
                   </tr>
                </thead>
-               <tfoot>
+               {{-- <tfoot>
                   <tr>
                      <th class='notexport'></th>
                      <th>Kode</th>
                      <th>Nama</th>
-                     <th>Price List</th>
+                     <th>Kategori Harga</th>
                      <th>Harga</th>
                   </tr>
-               </tfoot>
+               </tfoot> --}}
                <tbody class="tBody"></tbody>
             </table>
          </div>
@@ -252,21 +206,18 @@
 
          language: {
             searchPlaceholder: "Pencarian Global ",
-            "sLengthMenu": "_MENU_",
+            sLengthMenu: "_MENU_",
          },
          ajax: {
             url: '{{ route("item.datatable") }}',
-            'type': 'POST',
+            type: 'POST',
             headers: {
                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
             data: function (d) {
-               d.item_code_filter = $('input[name=item_code_filter]').val();
-               d.item_name_filter = $('input[name=item_name_filter]').val();
-               d.item_category_filter = $('input[name=item_category_filter]').val();
-               d.item_date_filter = $('input[name=item_date_filter]').val();
-               d.item_category_filter = $('select[name=item_category_filter] option').filter(':selected').val()
-               d.item_status_filter = $('select[name=item_status_filter] option').filter(':selected').val()
+               d.itemcode_filter = $('input[name=itemcode_filter]').val();
+               d.itemname_filter = $('input[name=itemname_filter]').val();
+               d.pricelist_filter = $('select[name=pricelist_filter] option').filter(':selected').val()
             }
          },
          columns: [
@@ -313,21 +264,18 @@
             }, 5000)
          }
 
-         if (!disabled) {
-            $(this).html('<input type="text" class="form-control form-control-sm filter" value="' + value + '" placeholder="Filter ' + title + '"' + disabled + ' />');
-         }
+         // if (!disabled) {
+         //    $(this).html('<input type="text" class="form-control form-control-sm filter" value="' + value + '" placeholder="Filter ' + title + '"' + disabled + ' />');
+         // }
       });
 
       //  aktivated column filter
-      dTable.columns().every(function () {
-         var that = this;
-         $('input', this.footer()).on('keyup change', function () {
-            that
-               .search(this.value)
-               .draw();
-
-         });
-      });
+      // dTable.columns().every(function () {
+      //    var that = this;
+      //    $('input', this.footer()).on('keyup change', function () {
+      //       that.search(this.value).draw();
+      //    });
+      // });
 
 
    });

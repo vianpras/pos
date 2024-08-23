@@ -23,11 +23,9 @@ class ItemControllers extends Controller
     {
         if (Helper::checkACL('master_item', 'r')) {
             // render index
-            $category = Helper::forSelect('categories', 'id', 'name', false, false);
+            $kategoriHarga = Helper::forSelect('SAPOPLN', 'listnum', 'listname', false, false);
+            $var = ['nav' => 'data-induk', 'subNav' => 'barang', 'title' => 'Barang', 'category' => $kategoriHarga];
 
-
-            $var = ['nav' => 'data-induk', 'subNav' => 'barang', 'title' => 'Barang', 'category' => $category];
-            // dump($var);
             return view('master.item.index', $var);
         } else {
             // tidak memiliki otorisasi
@@ -51,6 +49,7 @@ class ItemControllers extends Controller
                             'SAPOITM.itemcode',
                             'SAPOITM.itemname',
                             'SAPITM1.price',
+                            'SAPOPLN.listnum',
                             'SAPOPLN.listname'
                         );
                 return Datatables::of($items)
@@ -65,6 +64,17 @@ class ItemControllers extends Controller
                         // render column buy_price
                         $buy_price = 'Rp. ' . Helper::formatNumber($item->price, '');
                         return $buy_price;
+                    })
+                    ->filter(function ($query) use ($request) {
+                        if (!empty($request->get('itemcode_filter'))) {
+                            $query->where('SAPOITM.itemcode', $request->itemcode_filter);
+                        }
+                        if (!empty($request->get('itemname_filter'))) {
+                            $query->where('SAPOITM.itemname', $request->itemname_filter);
+                        }
+                        if (!empty($request->get('pricelist_filter'))) {
+                            $query->where('SAPOPLN.listnum', $request->pricelist_filter);
+                        }
                     })
                     ->rawColumns(['action','pricing']) 
                     ->make(true);

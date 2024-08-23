@@ -258,10 +258,10 @@ class Helper
    {
       switch ($type) {
          case 'rupiah':
-            $result = "Rp " . number_format($value, 2, ',', '.');
+            $result = "Rp " . number_format($value, 0, ',', '.');
             break;
          case 'norp':
-            $result = number_format($value, 2, ',', '.');
+            $result = number_format($value, 0, ',', '.');
             break;
          case 'number':
             $result = str_replace(array('.', ',00', 'Rp '), '', $value);
