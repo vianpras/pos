@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Helpers\Helper;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Illuminate\Support\Facades\Crypt;
 
 class AuthControllers extends Controller
 {
@@ -74,8 +75,9 @@ class AuthControllers extends Controller
         $password = $request->password;
         $remember = $request->remember;
         $checkAuth = Helper::Auth($email, $password, 'email');
-        // dd($checkAuth);
+
         $result = (object) $checkAuth;
+        // dd($result);
         if ($result->status == 'success') {
             if (Auth::attempt(['email' => $email, 'password' => $password], $remember)) {
                 return redirect('dashboard')
@@ -84,6 +86,16 @@ class AuthControllers extends Controller
             }
         }
         return redirect('login')->with('status', $result);
+    }
+
+    public function authLoginSwitch(Request $request){
+        $data = Crypt::decrypt($request->param);
+        // dd(Crypt::decrypt($data));
+        if(Auth::loginUsingId($data['userId'])){
+            return redirect('sales/create?cartCode='.$data['cartNumber']);
+        } else {
+            return redirect('/');
+        }
     }
 
     public function logout(Request $request)

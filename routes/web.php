@@ -27,6 +27,7 @@ Route::get('/ping', function (Request $request) {
 Route::get('/', 'AuthControllers@login');
 Route::get('login', 'AuthControllers@login')->name('login'); //index login
 Route::post('authenticate', 'AuthControllers@authenticate')->name('authenticate'); //post data login
+Route::get('auth/loginBySwitch', 'AuthControllers@authLoginSwitch'); //post data login
 Route::get('auth/forgot', 'AuthControllers@forgot')->name('forgot'); //index forgot login
 Route::post('auth/forgotRequest', 'AuthControllers@forgotRequest')->name('forgotRequest'); //post forgot login
 Route::get('auth/recover/{hash}', 'AuthControllers@recover')->name('recover'); //index edit auth/password forgot login
@@ -107,6 +108,7 @@ Route::middleware(['auth'])->group(function () {
         // Master Items
         Route::get('item/select', 'MasterItemController@listItem')->name('master.item.list.selected');
         Route::post('item/pricing', 'MasterItemController@itemPriceByCode')->name('master.item.pricing');
+        Route::post('items/getDetails', 'MasterItemController@getDetails')->name('master.item.details');
         // .Master Items
 
         // Master Customer
@@ -231,7 +233,23 @@ Route::middleware(['auth'])->group(function () {
     Route::get('sales/order/{code}/', 'POSControllers@printOrder')->name('printOrder'); //
     Route::get('sales/payment_method/', 'POSControllers@paymentMethod')->name('sales.paymentMethod'); //
     Route::post('sales/payment_method/details', 'POSControllers@paymentMethodDetails')->name('sales.paymentMethod.details'); //
-    // .pos 
+    // .pos
+
+    // pos 2
+    Route::get('sales/create2', 'POS2Controllers@create'); //modal create pos
+    // .pos 2
+
+    // cart
+    Route::get('sales/cart', 'CartControllers@index')->name('sales.cart');
+    Route::post('sales/datatable', 'CartControllers@datatable')->name('sales.cart.datatable');
+    Route::get('sales/cart/create', 'CartControllers@create')->name('sales.cart.create');
+    Route::post('sales/cart/store', 'CartControllers@store')->name('sales.cart.store');
+    Route::get('sales/cart/edit/{docnum}', 'CartControllers@edit')->name('sales.cart.edit');
+    Route::post('sales/cart/update', 'CartControllers@update')->name('sales.cart.update');
+    Route::post('sales/cart/delete', 'CartControllers@delete')->name('sales.cart.delete');
+    Route::post('sales/cart/commit', 'CartControllers@commit')->name('sales.cart.commit');
+    Route::post('sales/cart/detailPricelist', 'CartControllers@detailPricelist');
+    // .cart
 
     // purchase 
     // Route::get('purchase', 'PurchasesControllers@index')->name('purchase'); // index purchase

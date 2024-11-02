@@ -128,34 +128,50 @@ class POSControllers extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function create()
+    public function create(Request $request)
     {
         if (Helper::checkACL('sales', 'c')) {
             $items      = DB::table('SAPOITM')->get();
+
             $pricelist  = DB::table('SAPOPLN')->get();
             $customer   = DB::table('SAPOCRD')->select('SAPOCRD.*', DB::raw('RIGHT(SAPOCRD.phone, 4) AS phoneCode'))->get();
-                    
+            
+            $cartCode = 0;
+            if($request){
+                $cartCode = $request->cartCode;
+                $cart = DB::table('sales_cart')
+                        ->leftJoin('users', 'sales_cart.salesid','=','users.id')
+                        ->leftJoin('SAPOCRD', 'sales_cart.bussiness_partner','=','SAPOCRD.cardcode')
+                        ->where('docnum', $cartCode)
+                        ->select('sales_cart.*', 'SAPOCRD.cardname', 'SAPOCRD.phone', 'users.full_name')
+                        ->first();
+                $cart_details = DB::table('sales_cart_details')->where('cart_id', $cartCode)->get();
+            }
+        
             $var = [
                 'nav'       => 'salesCreate',
                 'subNav'    => 'sales',
                 'title'     => 'Tambah Order Penjualan',
                 'items'     => $items,
                 'pricelist' => $pricelist,
-                'customer'  => $customer
+                'customer'  => $customer,
+                'cart'      => ($request) ? $cart : false,
+                'cart_details' => ($request) ? $cart_details : false
             ];
 
             return view('sales.create', $var);
         } else {
             $result = config('global.errors.E002');
+            
+            session()->flash('notifikasi', [
+                "icon"      => config('global.errors.E002.status'),
+                "title"     => config('global.errors.E002.code'),
+                "message"   => config('global.errors.E002.message'),
+            ]);
+    
+            return redirect('dashboard');
         }
 
-        session()->flash('notifikasi', [
-            "icon"      => config('global.errors.E002.status'),
-            "title"     => config('global.errors.E002.code'),
-            "message"   => config('global.errors.E002.message'),
-        ]);
-
-        return redirect('dashboard');
     }
 
     public function paymentMethod()
@@ -199,10 +215,9 @@ class POSControllers extends Controller
             //     return response()->json($valid); //return if not valid
             // }
 
-            // jika meja blm di pilih
             // Query creator
             DB::beginTransaction();
-
+            dd($request);
             try {
                 $code = Helper::docPrefix('sales');
                 // jika bayar

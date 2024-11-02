@@ -115,7 +115,7 @@ background: linear-gradient(to right, #F27121, #E94057, #8A2387); /* W3C, IE 10+
          },
          password: {
             required: true,
-            minlength: 8
+            minlength: 5
          },
 
       },

@@ -115,22 +115,14 @@
                                 <div class="form-group">
                                     <label for="Ffoto">Foto Profile</label>
                                     <span for="Fgambar" class="text-secondary">( 512x512px | 2MB) </span>
-
-
                                     <div class="input-group">
                                         <div class="" style="max-width:100px">
-                                            <img style="max-width:100px; margin-right:20px;" id="_oPreviewImg"
-                                                alt="/gambar/user/{{ Auth::id() }}" class="img-thumbnail"
-                                                src='/gambar/user/{{ Auth::id() }}' />
+                                            <img style="max-width:100px; margin-right:20px;" id="_oPreviewImg" alt="/gambar/user/{{ Auth::id() }}" class="img-thumbnail" src='/gambar/user/{{ Auth::id() }}' />
                                         </div>
-                                        <div class="custom-file"
-                                            style="margin-top: 5%; margin-left: 25px;margin-right: 25px;">
-                                            <input type="file" class="custom-file-input" id="Ffoto" accept="image/*"
-                                                name="file" onchange="_previewImg(event)">
-
+                                        <div class="custom-file" style="margin-top: 5%; margin-left: 25px;margin-right: 25px;">
+                                            <input type="file" class="custom-file-input" id="Ffoto" accept="image/*" name="file" onchange="_previewImg(event)">
                                             <label class="custom-file-label" for="Ffoto">Pilih Foto Profile</label>
                                         </div>
-
                                     </div>
                                 </div>
 
@@ -138,103 +130,83 @@
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label for="FUser">Nama Pengguna</label>
-                                            <input type="text" class="form-control" name='name' id="FUser"
-                                                value="{{ Auth::user()->name }}" require
-                                                placeholder="Masukkan Nama Pengguna">
+                                            <input type="text" class="form-control" name='name' id="FUser" value="{{ Auth::user()->full_name }}" require placeholder="Masukkan Nama Pengguna">
                                         </div>
                                         <div class="form-group">
                                             <label for="exampleInputEmail1">Alamat Email</label>
-                                            <input type="email" class="form-control" name='email'
-                                                id="exampleInputEmail1" value="{{ Auth::user()->email }}" require
-                                                disabled>
+                                            <input type="email" class="form-control" name='email' id="exampleInputEmail1" value="{{ Auth::user()->email }}" require disabled>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label for="password">Password:</label>
                                             <div class="input-group">
-                                                <input id="password" type="password"
-                                                    class="form-control @error('password') is-invalid @enderror"
-                                                    name="password" data-toggle="password"
-                                                    placeholder=" Masukkan Passoword Anda" autocomplete>
-                                                <!-- <input type="password" name="password" id="password" class="form-control" data-toggle="password" placeholder=" Masukkan Passoword Anda"> -->
+                                                <input id="password" type="password" class="form-control @error('password') is-invalid @enderror" name="password" data-toggle="password" placeholder=" Masukkan Passoword Anda" autocomplete>
                                                 <div class="input-group-append">
-                                                    <span class="input-group-text input-password-hide"
-                                                        style="cursor: pointer;"><i class="fa fa-eye"></i></span>
+                                                    <span class="input-group-text input-password-hide" style="cursor: pointer;"><i class="fa fa-eye"></i></span>
                                                 </div>
-
                                             </div>
                                         </div>
                                         <div class="form-group">
                                             <label for="confirm_password">Konfirmasi Password</label>
                                             <div class="input-group">
-                                                <input id="password-confirm" type="password"
-                                                    class="form-control @error('password') is-invalid @enderror"
-                                                    name="password_confirmation" data-toggle="password"
-                                                    placeholder=" Konfirmasi Passoword" autocomplete>
+                                                <input id="password-confirm" type="password" class="form-control @error('password') is-invalid @enderror" name="password_confirmation" data-toggle="password" placeholder=" Konfirmasi Passoword" autocomplete>
                                                 <div class="input-group-append">
-                                                    <span class="input-group-text input-password-hide"
-                                                        style="cursor: pointer;"><i class="fa fa-eye"></i></span>
+                                                    <span class="input-group-text input-password-hide" style="cursor: pointer;"><i class="fa fa-eye"></i></span>
                                                 </div>
-
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-
-
                             </div>
                             <!-- /.card-body -->
                             <!--./ body modal user -->
+                            </div>
+                            <div class="modal-footer justify-content-between">
+                                <button type="button" onclick="reset()" class="btn btn-danger"
+                                    data-dismiss="modal">Close</button>
+                                <button type="submit" class="btn btn-primary">Simpan</button>
+                            </div>
+                        </form>
                     </div>
-                    <div class="modal-footer justify-content-between">
-                        <button type="button" onclick="reset()" class="btn btn-danger"
-                            data-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary">Simpan</button>
-                    </div>
-                    </form>
+                    <!-- /.modal-content -->
                 </div>
-                <!-- /.modal-content -->
+                <!-- /.modal-dialog -->
             </div>
-            <!-- /.modal-dialog -->
+            <!-- ./ modal user -->
+            @if (!$nav == 'sales' || !$nav == 'booking')
+                <footer class="main-footer">
+                    <strong>Copyright &copy; {{ Date('Y') }} <a href="/">{{ config('app.name') }}</a>.</strong>
+                    All rights reserved.
+                    <div class="float-right d-none d-sm-inline-block">
+                        <b>Version</b> {{ config('app.version') }}
+                    </div>
+                </footer>
+            @endif
+            <!-- Control Sidebar -->
+            <aside class="control-sidebar control-sidebar-dark">
+            <!-- Control sidebar content goes here -->
+            </aside>
+            <!-- /.control-sidebar -->
         </div>
-        <!-- ./ modal user -->
-        @if (!$nav == 'sales' || !$nav == 'booking')
-            <footer class="main-footer">
-                <strong>Copyright &copy; {{ Date('Y') }} <a href="/">{{ config('app.name') }}</a>.</strong>
-                All rights reserved.
-                <div class="float-right d-none d-sm-inline-block">
-                    <b>Version</b> {{ config('app.version') }}
+
+        {{-- button floating --}}
+        <div class="position-sticky sticky-top text-right floating-action-menu col-2 float-right" style="bottom: 30px; right: 50px;">
+            <div class="action-menu">
+                <div class="floating-action mb-2">
+                    <div class="badge badge-pill bg-teal">Kasir</div>
+                    <a href="/sales/create" class="shadow btn btn-floating bg-teal rounded-circle ml-2" style="width: 45px; height: 45px" role="button" aria-pressed="true">
+                        <i class="fas fa-cash-register mt-2"></i>
+                    </a>
                 </div>
-            </footer>
-        @endif
-
-        <!-- Control Sidebar -->
-        <aside class="control-sidebar control-sidebar-dark">
-        <!-- Control sidebar content goes here -->
-        </aside>
-        <!-- /.control-sidebar -->
-    </div>
-
-    {{-- button floating --}}
-    <div class="position-sticky sticky-top text-right floating-action-menu col-2 float-right"
-        style="bottom: 30px; right: 50px;">
-        <div class="action-menu">
-            <div class="floating-action mb-2">
-                <div class="badge badge-pill bg-teal">Kasir</div>
-                <a href="/sales/create" class="shadow btn btn-floating bg-teal rounded-circle ml-2" style="width: 45px; height: 45px" role="button" aria-pressed="true">
-                    <i class="fas fa-cash-register mt-2"></i>
+            </div>
+            <div class="d-block action-button mr-2">
+                <a class="shadow btn btn-floating btn-success rounded-circle" style="width: 45px; height: 45px" role="button" aria-pressed="true" onclick="$(this).closest('div.floating-action-menu').toggleClass('active')">
+                    <i class="fas fa-bars mt-2"></i>
                 </a>
             </div>
-        </div>
-        <div class="d-block action-button mr-2">
-            <a class="shadow btn btn-floating btn-success rounded-circle" style="width: 45px; height: 45px" role="button" aria-pressed="true" onclick="$(this).closest('div.floating-action-menu').toggleClass('active')">
-                <i class="fas fa-bars mt-2"></i>
-            </a>
-        </div>
     </div>
     <!-- ./wrapper -->
-
     <!-- jQuery -->
     <script src="/plugins/jquery/jquery.min.js"></script>
     <!-- jQuery UI 1.11.4 -->
@@ -308,6 +280,7 @@
     <!-- AdminLTE dashboard demo (This is only for demo purposes) -->
     {{-- <script src="/dist/js/pages/dashboard.js"></script> --}}
     <script src="/dist/js/custom.js"></script>
+    <script src="/dist/js/html5-qrcode.min.js"></script>
     {{-- firebase --}}
     <script src="https://www.gstatic.com/firebasejs/7.23.0/firebase.js"></script>
     {{-- <script src="https://www.gstatic.com/firebasejs/7.23.0/firebase-messaging.js"></script> --}}

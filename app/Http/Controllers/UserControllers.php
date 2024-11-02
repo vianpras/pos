@@ -43,7 +43,7 @@ class UserControllers extends Controller
             // query data
             $users = DB::table('users')
                ->leftJoin('users_acls', 'users.users_acls_id', '=', 'users_acls.id')
-               ->select(['users.id', 'users.name', 'users.username', 'users.email', 'users.status', 'users_acls.name as hakakses']);
+               ->select(['users.id', 'users.full_name AS name', 'users.username', 'users.email', 'users.status_pos', 'users_acls.name as hakakses']);
 
             return Datatables::of($users)
                ->addColumn('action', function ($user) {
@@ -52,17 +52,16 @@ class UserControllers extends Controller
                      'edit_url' => '/',
                      'show_url' => '/',
                      'id' => $user->id,
-                     'status' => $user->status,
+                     'status' => $user->status_pos,
                   ]);
                })
-               ->editColumn('status', function ($user) {
+               ->editColumn('status_pos', function ($user) {
                   // render column status
-                  $_status = $user->status == '1'
+                  $_status = $user->status_pos == '1'
                      ? '<center><span class="right badge badge-success">Aktif</span></center>'
                      : '<center><span class="right badge badge-danger">Non-Aktif</span></center>';
                   return $_status;
                })
-
                ->filter(function ($query) use ($request) {
                   $query->where('users.id', '!=', Auth::id());
                   if ($request->has('user_name_filter')) {
@@ -78,10 +77,10 @@ class UserControllers extends Controller
                   if ($request->has('user_status_filter')) {
                      if (($request->user_status_filter) == '-1') {
                         // default column filter
-                        $query->where('users.status', "<=", 3);
+                        $query->where('users.status_pos', "<=", 3);
                      } else {
                         // filtered column
-                        $query->where('users.status', 'like', "%" . $request->user_status_filter . "%");
+                        $query->where('users.status_pos', 'like', "%" . $request->user_status_filter . "%");
                      }
                   }
                   if ($request->has('user_date_filter')) {
@@ -131,7 +130,7 @@ class UserControllers extends Controller
    {
       if (Helper::checkACL('master_user', 'r')) {
          $data = DB::table('users')
-            ->select('id', 'name', 'username', 'email', 'mobile', 'status', 'last_login', 'users_acls_id', 'sudo', 'created_at')
+            ->select('id', 'full_name', 'username', 'email', 'mobile', 'status_pos', 'last_login', 'users_acls_id', 'sudo', 'created_at')
             ->where('id', $id)->first();
             $user_acl = Helper::forSelect('users_acls', 'id', 'name', false, false);
          $var = ['nav' => 'data-induk', 'subNav' => 'user', 'title' => 'Edit Pengguna '.$data->name, 'data' => $data, 'user_acl' => $user_acl];
@@ -156,7 +155,7 @@ class UserControllers extends Controller
             'email' => 'required|email|max:255|unique:users,email',
             'mobile' => 'required|digits_between:9,13',
             'password' => 'required|confirmed|min:8',
-            'status' => 'required|boolean',
+            'status_pos' => 'required|boolean',
             'users_acls_id' => 'required|exists:users_acls,id',
             'sudo' => 'required|boolean',
          ], $vMessage);

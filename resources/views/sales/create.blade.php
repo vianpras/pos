@@ -1,6 +1,13 @@
 @extends('layouts.app')
 
 @section('content')
+@php
+    $url = parse_url($_SERVER['REQUEST_URI']);
+    $queryParam = "";
+    if(isset($url['query'])){
+        $queryParam = $url['query'];
+    }
+@endphp
 <div class="content-wrapper">
     <section class="content">
         <form id='SalesForm'>
@@ -11,32 +18,33 @@
                         <div class="card-body">
                             <div class="row">
                                 <section class="col-sm-6">
+                                    <input type="hidden" id="docnum" name="docnum" value="{{ ($cart) ? $cart->docnum : 0 }}">
                                     <div class="form-group">
                                         <label for="membership_code"><sup class="text-red">*</sup>Business Partner Code</label>
                                         <select class="form-control form-control-sm select2" name="custcode" id="custcode" onchange="setBusinessPartner(this.value)">
                                             <option value="" disabled selected hidden>Choose</option>
                                             @foreach($customer AS $cust)
-                                                <option value="{{ $cust->cardcode }}">{{ (($cust->phoneCode) ? $cust->phoneCode : '0000').' | '.$cust->cardname }}</option>
+                                                <option value="{{ $cust->cardcode }}" {{ (($cart) ? (($cart->bussiness_partner == $cust->cardcode) ? "selected" : "") : "") }}>{{ (($cust->phoneCode) ? $cust->phoneCode : '0000').' | '.$cust->cardname }}</option>
                                             @endforeach
                                         </select>
                                     </div>
                                     <div class="form-group">
                                         <label for="membership_code"><sup class="text-red">*</sup>Business Partner Name</label>
-                                        <input type="text" class="form-control form-control-sm" name="custname" id="custname" placeholder="Business Partner Name" readonly>
+                                        <input type="text" class="form-control form-control-sm" name="custname" id="custname" placeholder="Business Partner Name" value="{{ (($cart) ? $cart->cardname : "") }}" readonly>
                                     </div>
                                     <div class="form-group">
                                         <label for="membership_code"><sup class="text-red">*</sup>Telephone Number</label>
-                                        <input type="text" class="form-control form-control-sm" name="custphone" id="custphone" placeholder="Telephone Number" readonly>
+                                        <input type="text" class="form-control form-control-sm" name="custphone" id="custphone" placeholder="Telephone Number" value="{{ (($cart) ? $cart->phone : "") }}" readonly>
                                     </div>
                                 </section>
                                 <section class="col-sm-6">
                                     <div class="form-group">
                                         <label for="membership_code">Sales</label>
-                                        <input type="text" class="form-control form-control-sm" name="code" id="code" placeholder="Sales" readonly>
+                                        <input type="text" class="form-control form-control-sm" name="sales" id="sales" placeholder="Sales" value="{{ Auth::user()->full_name }}" data-id="{{ Auth::user()->id }}" readonly>
                                     </div>
                                     <div class="form-group">
                                         <label for="membership_code">Checker</label>
-                                        <input type="text" class="form-control form-control-sm" name="code" id="code" placeholder="Checker" readonly>
+                                        <input type="text" class="form-control form-control-sm" name="checker" id="checker" placeholder="Checker" readonly>
                                     </div>
                                     <div class="row">
                                         <div class="col-md-6">
@@ -63,26 +71,26 @@
                         <div class="card-body m-0 p-2 align-items-center justify-content-center">
                             <div class="row">
                                 <div class="col align-self-center">
-                                    <input type="hidden" name="total" id="total" value="0">
+                                    <input type="hidden" name="total" id="total" value="{{ (($cart) ? $cart->grandtotal : 0) }}">
                                     <span class="h6 m-0 float-left text-secondary">
                                         #{{ Helper::docPrefix('sales') }}
                                     </span>
                                 </div>
                                 <div class="col align-self-center">
                                     <span class="h4 m-0 float-right text-olive" id="total_view">
-                                        {{ Helper::formatNumber('0', 'rupiah') }}
+                                        {{ (($cart) ? Helper::formatNumber($cart->grandtotal, 'rupiah') : Helper::formatNumber('0', 'rupiah')) }}
                                     </span>
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col align-self-center">
-                                    <input type="hidden" name="sub_grand_total" id="sub_grand_total" value="0">
+                                    <input type="hidden" name="sub_grand_total" id="sub_grand_total" value="{{ (($cart) ? $cart->grandtotal : 0) }}">
                                     {{-- <input type="text" name="payment_charge" id="payment_charge" value="0"> --}}
                                     <span class="h5 m-0 float-left text-secondary">Sub Total</span>
                                 </div>
                                 <div class="col align-self-center">
                                     <span class="h5 m-0 float-right text-secondary" id="sub_grand_total_view">
-                                        {{ Helper::formatNumber('0', 'rupiah') }}
+                                        {{ (($cart) ? Helper::formatNumber($cart->grandtotal, 'rupiah') : Helper::formatNumber('0', 'rupiah')) }}
                                     </span>
                                 </div>
                             </div>
@@ -130,6 +138,17 @@
                     <div class="card m-1">
                         <div class="card-body">
                             <button type="button" class="btn btn-flat bg-cyan" onclick="selectItem()">+ Add Items</button>
+                            @if($cart_details)
+                                @php
+                                    $parameter =[
+                                        'userId' => Auth::user()->id,
+                                        'cartNumber' => ($cart) ? $cart->docnum : ''
+                                    ];
+                                    $enkripsi= Crypt::encrypt($parameter);
+                                @endphp
+                                <a href="http://127.0.0.1:8002/auth/loginBySwitch?param={{ $enkripsi }}" class="btn btn-flat btn-outline-warning" target="_blank"><span class="fas fa-exchange-alt"></span> Switch</a>
+                                {{-- <button type="button" class="btn btn-flat btn-outline-info" onclick="selectItem()"></button> --}}
+                            @endif
                             <div class="row gx-3">
                                 <div class="scrollYMenu col-12 col-sm-12 col-xl-12" style="max-height: 35vh;">
                                     <table class="table table-sm mt-2">
@@ -140,15 +159,59 @@
                                                 <th width="5.7%">Qty</th>
                                                 <th width="13%">Price List</th>
                                                 <th>Price</th>
-                                                <th width="5.7%">Disc. 1</th>
-                                                <th width="5.7%">Disc. 2</th>
-                                                <th width="5.7%">Disc. 3</th>
+                                                <th width="5.7%">Disc. 1(%)</th>
+                                                <th width="5.7%">Disc. 2(%)</th>
+                                                <th width="5.7%">Disc. 3(%)</th>
                                                 <th>Subtotal</th>
                                                 <th></th>
                                             </tr>
                                         </thead>
                                         <tbody id="item-list">
-                                            
+                                            @if($cart_details)
+                                                @foreach($cart_details AS $key => $value)
+                                                <tr id="row-item-detail{{ $key+1 }}" data-id="{{ $key+1 }}">
+                                                    <td class="align-middle">
+                                                        <input class="form-control form-control-sm" type="hidden" id="itemcode{{ $key+1 }}" name="itemcode[]" value="`+itemcode+`">
+                                                        <dt>{{ $value->itemcode }}</dt>
+                                                        <dd style="width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $value->itemname }}</dd>
+                                                    </td>
+                                                    <td class="align-middle">
+                                                        <input class="form-control form-control-sm" type="text" name="token_remarks[]">
+                                                    </td>
+                                                    <td class="align-middle">
+                                                        <input class="form-control form-control-sm" type="number" name="qty[]" id="qty{{ $key+1 }}" onchange="calcSum({{ $key+1 }})" value="{{ $value->qty }}">
+                                                    </td>
+                                                    <td class="align-middle">
+                                                        <select class="form-control form-control-sm" name="price_list[]" id="price_list{{ $key+1 }}" onchange="priceList('{{ $value->itemcode }}', this.value, {{ $key+1 }})" style="appearance: none;">
+                                                            <option value="" disabled selected hidden>Choose</option>
+                                                            @foreach($pricelist AS $pricenum)
+                                                                <option value="{{ $pricenum->listnum }}" {{ (($value->pricelist_id == $pricenum->listnum) ? "selected" : "") }}>{{ $pricenum->listname }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </td>
+                                                    <td class="align-middle">
+                                                        <input class="form-control form-control-sm" type="hidden" name="price[]" id="price{{ $key+1 }}" value="{{ $value->price }}" readonly>
+                                                        <span id="price_show{{ $key+1 }}">{{ Helper::formatNumber($value->price, 'rupiah') }}</span>
+                                                    </td>
+                                                    <td class="align-middle">
+                                                        <input class="form-control form-control-sm" type="number" name="disc1[]" id="disc1{{ $key+1 }}" onchange="calcSum({{ $key+1 }})" value="0">
+                                                    </td>
+                                                    <td class="align-middle">
+                                                        <input class="form-control form-control-sm" type="number" name="disc2[]" id="disc2{{ $key+1 }}" onchange="calcSum({{ $key+1 }})" value="0" readonly>
+                                                    </td>
+                                                    <td class="align-middle">
+                                                        <input class="form-control form-control-sm" type="number" name="disc3[]" id="disc3{{ $key+1 }}" onchange="calcSum({{ $key+1 }})" value="0" readonly>
+                                                    </td>
+                                                    <td class="align-middle text-right">
+                                                        <input class="form-control form-control-sm" type="hidden" name="subtotal[]" id="subtotal{{ $key+1 }}" value="{{ $value->subtotal }}" readonly>
+                                                        <span id="subtotal_show{{ $key+1 }}">{{ Helper::formatNumber($value->subtotal, 'rupiah') }}</span>
+                                                    </td>
+                                                    <td class="align-middle">
+                                                        <button type="button" name="remove" id="{{ $key+1 }}" class="btn btn-sm btn-danger btn_remove"><span class="fas fa-trash"></span></button>
+                                                    </td>
+                                                </tr>
+                                                @endforeach
+                                            @endif
                                         </tbody>
                                     </table>
                                 </div>
@@ -323,12 +386,15 @@
     }
 
     const addItem = () => {
+        let docnum = $("#docnum").val();
         let itemcode = $('#itemcode_modal').val();
         let itemname = $('#itemname_modal').val();
         let pricelist = "{{ $pricelist }}";
         let pricelist_modal = $('#pricelist_modal').val();
         let price = $('#price_modal_input').val();
         let qty = $('#qty_modal').val();
+        var custcode = $("#custcode").find(":selected").val();
+        var sales = $("#sales").data("id");
 
         var rowCount = $('#item-list tr').length;
         var i = rowCount + 1;
@@ -338,51 +404,83 @@
             output.push('<option value="'+ value.listnum +'" '+((value.listnum == pricelist_modal) ? "selected":"")+'>'+ value.listname +'</option>');
         });
 
-        $('#item-list').append(`
-            <tr id="row-item-detail`+i+`" data-id="`+i+`">
-                <td class="align-middle">
-                    <input class="form-control form-control-sm" type="hidden" id="itemcode`+i+`" name="itemcode[]" value="`+itemcode+`">
-                    <dt>`+itemcode+`</dt>
-                    <dd style="width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">`+itemname+`</dd>
-                </td>
-                <td class="align-middle">
-                    <input class="form-control form-control-sm" type="text" name="token_remarks[]">
-                </td>
-                <td class="align-middle">
-                    <input class="form-control form-control-sm" type="number" name="qty[]" id="qty`+i+`" onchange="calcSum(`+i+`)" value="`+qty+`">
-                </td>
-                <td class="align-middle">
-                    <select class="form-control form-control-sm" name="price_list[]" id="price_list`+i+`" onchange="priceList('`+itemcode+`', this.value, `+i+`)" style="appearance: none;">
-                        `+output.join('')+`
-                    </select>
-                </td>
-                <td class="align-middle">
-                    <input class="form-control form-control-sm" type="hidden" name="price[]" id="price`+i+`" value="`+price+`" readonly>
-                    <span id="price_show`+i+`">`+maskRupiah("", price)+`</span>
-                </td>
-                <td class="align-middle">
-                    <input class="form-control form-control-sm" type="number" name="disc1[]" id="disc1`+i+`" onchange="calcSum(`+i+`)" value="0">
-                </td>
-                <td class="align-middle">
-                    <input class="form-control form-control-sm" type="number" name="disc2[]" id="disc2`+i+`" onchange="calcSum(`+i+`)" value="0" readonly>
-                </td>
-                <td class="align-middle">
-                    <input class="form-control form-control-sm" type="number" name="disc3[]" id="disc3`+i+`" onchange="calcSum(`+i+`)" value="0" readonly>
-                </td>
-                <td class="align-middle text-right">
-                    <input class="form-control form-control-sm" type="hidden" name="subtotal[]" id="subtotal`+i+`" value="0" readonly>
-                    <span id="subtotal_show`+i+`"></span>
-                </td>
-                <td class="align-middle">
-                    <button type="button" name="remove" id="`+i+`" class="btn btn-sm btn-danger btn_remove"><span class="fas fa-trash"></span></button>
-                </td>
-            </tr>
-        `);
+        $.ajax({
+            type:'POST',
+            url:"{{ url('sales/cart/store') }}",
+            data:{
+                docnum      : docnum,
+                itemcode    : itemcode,
+                itemname    : itemname,
+                qty         : qty,
+                price       : price,
+                subtotal    : qty*price,
+                pricelist   : pricelist_modal,
+                sales       : sales,
+                custcode    : custcode,
+                stage       : '1'
+            },
+            beforeSend: function() {
+                doBeforeSend(true)
+            },
+            success:function(data){
+                console.log(data)
+                if(data.status == "success"){
+                    
+                    $('#item-list').append(`
+                        <tr id="row-item-detail`+i+`" data-id="`+i+`">
+                            <td class="align-middle">
+                                <input class="form-control form-control-sm" type="hidden" id="itemcode`+i+`" name="itemcode[]" value="`+itemcode+`">
+                                <dt>`+itemcode+`</dt>
+                                <dd style="width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">`+itemname+`</dd>
+                            </td>
+                            <td class="align-middle">
+                                <input class="form-control form-control-sm" type="text" name="token_remarks[]">
+                            </td>
+                            <td class="align-middle">
+                                <input class="form-control form-control-sm" type="number" name="qty[]" id="qty`+i+`" onchange="calcSum(`+i+`)" value="`+qty+`">
+                            </td>
+                            <td class="align-middle">
+                                <select class="form-control form-control-sm" name="price_list[]" id="price_list`+i+`" onchange="priceList('`+itemcode+`', this.value, `+i+`)" style="appearance: none;">
+                                    `+output.join('')+`
+                                </select>
+                            </td>
+                            <td class="align-middle">
+                                <input class="form-control form-control-sm" type="hidden" name="price[]" id="price`+i+`" value="`+price+`" readonly>
+                                <span id="price_show`+i+`">`+maskRupiah("", price)+`</span>
+                            </td>
+                            <td class="align-middle">
+                                <input class="form-control form-control-sm" type="number" name="disc1[]" id="disc1`+i+`" onchange="calcSum(`+i+`)" value="0">
+                            </td>
+                            <td class="align-middle">
+                                <input class="form-control form-control-sm" type="number" name="disc2[]" id="disc2`+i+`" onchange="calcSum(`+i+`)" value="0" readonly>
+                            </td>
+                            <td class="align-middle">
+                                <input class="form-control form-control-sm" type="number" name="disc3[]" id="disc3`+i+`" onchange="calcSum(`+i+`)" value="0" readonly>
+                            </td>
+                            <td class="align-middle text-right">
+                                <input class="form-control form-control-sm" type="hidden" name="subtotal[]" id="subtotal`+i+`" value="0" readonly>
+                                <span id="subtotal_show`+i+`"></span>
+                            </td>
+                            <td class="align-middle">
+                                <button type="button" name="remove" id="`+i+`" class="btn btn-sm btn-danger btn_remove"><span class="fas fa-trash"></span></button>
+                            </td>
+                        </tr>
+                    `);
+
+                    if(docnum == 0){
+                        $("#docnum").val(data.docnum);
+                        window.location.href = '{{ url("sales/create?cartCode=") }}'+data.docnum;
+                    }
+
+                    calcSum(i)
+                }
+                doBeforeSend(false)
+            }
+        });
 
         $('#modalBlade').modal("hide");
         $("#item-details-price").html("");
         $('#itemcode').val('').select2('destroy').select2();
-        calcSum(i)
     }
 
     $(document).on('click', '.btn_remove', function(){

@@ -26,7 +26,7 @@ class Helper
    {
       if($action == 'success') {
          $pdo     = DB::getPdo();
-         $query   = 'UPDATE users SET last_login=NOW(), failed_login=0 WHERE id=:id';
+         $query   = 'UPDATE users SET last_login = NOW(), failed_login = 0 WHERE id=:id';
          $stmt    = $pdo->prepare($query);
 
          $stmt->bindValue(':id', $id);
@@ -36,7 +36,7 @@ class Helper
       }elseif($action == 'failed') {
          // set failed_login = +1
          $pdo = DB::getPdo();
-         $query = 'UPDATE users SET failed_login=failed_login+1 WHERE id=:id';
+         $query = 'UPDATE users SET failed_login = failed_login+1 WHERE id=:id';
          $stmt = $pdo->prepare($query);
          $stmt->bindValue(':id', $id);
          $stmt->execute();
@@ -58,17 +58,17 @@ class Helper
       try {
          $pdo = DB::getPdo();
          if ($type == 'email') {
-            $query = 'SELECT id,username,name,mobile,status,password FROM users WHERE email=:email';
+            $query = 'SELECT id, username, full_name, mobile, status_pos, password FROM users WHERE email=:email';
             $stmt = $pdo->prepare($query);
             $stmt->bindValue(':email', $user);
          }
          if ($type == "mobile") {
-            $query = 'SELECT id,username,name,mobile,status,password FROM users WHERE mobile=:mobile';
+            $query = 'SELECT id, username, full_name, mobile, status_pos, password FROM users WHERE mobile=:mobile';
             $stmt = $pdo->prepare($query);
             $stmt->bindValue(':mobile', $user);
          }
          if ($type == "username") {
-            $query = 'SELECT id,username,name,mobile,status,password FROM users WHERE username=:username';
+            $query = 'SELECT id, username, full_name, mobile, status_pos, password FROM users WHERE username=:username';
             $stmt = $pdo->prepare($query);
             $stmt->bindValue(':username', $user);
          }
@@ -88,7 +88,7 @@ class Helper
                return $result;
             } else {
                if (Hash::check($password, $hash_password)) { //password benar?
-                  if ($data['status'] == 0) { //user tidak aktif 0
+                  if ($data['status_pos'] == 0) { //user tidak aktif 0
                      $result = config('global.errors.E008');
                      return $result;
                   }
@@ -200,7 +200,6 @@ class Helper
          $checkACL = false;
       }
 
-      // dd($users_acl->$role);
       return $checkACL;
    }
    public static function checkEditACL($role, $permission)
@@ -258,7 +257,7 @@ class Helper
    {
       switch ($type) {
          case 'rupiah':
-            $result = "Rp " . number_format($value, 0, ',', '.');
+            $result = "Rp " . number_format($value, 2, ',', '.');
             break;
          case 'norp':
             $result = number_format($value, 0, ',', '.');
@@ -441,8 +440,8 @@ class Helper
          $actionBundle = $action . ' access url: ' . $url;
          $saveLogs = DB::table('logs_apps')->insert([
             'user_id' => $idUser ?? null,
-            'action' => $actionBundle ?? 'unkown action',
-            'ip' => $ip ?? '999.999.999.999',
+            'access_url' => $actionBundle ?? 'unkown action',
+            'ip_address' => $ip ?? '999.999.999.999',
             'created_at' => Carbon::now(),
          ]);
          return;

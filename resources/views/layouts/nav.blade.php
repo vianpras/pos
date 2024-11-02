@@ -34,13 +34,30 @@
         @endif
         @if (Helper::checkACL('sales_order', 'r'))
         <li class="nav-item">
-          <a href="/sales/create" class="nav-link @if($nav == 'salesCreate') active text-bold @endif">
+          <a href="#" class="nav-link @if($nav == 'salesCreate') active text-bold @endif">
             <i class="nav-icon fas fa-cash-register"></i>
-            <p>Kasir</p>
+            <p>Penjualan Langsung <i class="right fas fa-angle-left"></i></p>
           </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              <a href="/sales/create" class="nav-link @if($subNav == 'company') active text-bold @endif">
+                <p class="text-capitalize">View 1</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="/sales/create2" class="nav-link @if($subNav == 'company') active text-bold @endif">
+                <p class="text-capitalize">View 2</p>
+              </a>
+            </li>
+          </ul>
         </li>
         @endif
-
+        <li class="nav-item">
+          <a href="/sales/cart" class="nav-link @if($nav == 'cart') active text-bold @endif">
+            <i class="nav-icon fas fa-cart-arrow-down"></i>
+            <p>Keranjang</p>
+          </a>
+        </li>
         {{-- data induk --}}
         @if (Helper::checkACL('application', 'r'))
         <li class="nav-header">Pengaturan</li>

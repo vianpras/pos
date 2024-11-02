@@ -274,4 +274,29 @@ class MasterItemController extends Controller
         ];
         return response()->json($var);
     }
+
+    function getDetails(Request $request){
+        $items = DB::table('SAPOITM')
+                ->leftJoin('SAPITM1', 'SAPOITM.itemcode','=','SAPITM1.itemcode')
+                ->where('SAPOITM.itemcode', $request->itemcode)
+                ->where('SAPITM1.pricelist', 1)
+                ->first();
+        $pricelist = DB::table('SAPOPLN')->get();
+	    $response = [];
+
+        if($items){
+            $response = [
+                "status"    => "success",
+                "message"   => "Data berhasil ditemukan",
+                "pricelist" => $pricelist,
+                "data"      => $items
+            ];	
+        } else {
+            $response = [
+                "status"    => "gagal",
+                "message"   => "Data tidak ditemukan"
+            ];
+        }
+        return response()->json($response);
+    }
 }
