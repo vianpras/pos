@@ -176,7 +176,7 @@ class POSControllers extends Controller
 
     public function paymentMethod()
     {
-        $paymentMethod = DB::table('SAPTPAYMENT')->get();
+        $paymentMethod = DB::table('pas_master_payment')->groupBy('type_payment')->get();
 
         $var = [
             'paymentMethod' => $paymentMethod
@@ -186,7 +186,7 @@ class POSControllers extends Controller
 
     public function paymentMethodDetails(Request $request)
     {
-        $paymentMethodDetails = DB::table('SAPTPAYMENT_DETAILS')->where('paymentCode', $request->payCode)->get();
+        $paymentMethodDetails = DB::table('pas_master_payment')->where('type_payment', $request->payCode)->get();
 
         $var = [
             'paymentMethodDetails' => $paymentMethodDetails
@@ -217,7 +217,7 @@ class POSControllers extends Controller
 
             // Query creator
             DB::beginTransaction();
-            dd($request);
+
             try {
                 $code = Helper::docPrefix('sales');
                 // jika bayar
@@ -234,31 +234,40 @@ class POSControllers extends Controller
                         'payCash'       => $request->payCash,
                         'payNonCash'    => $request->payNonCash,
                         'cashBack'      => $request->cashBack,
-                        'pMethod'       => $request->pMethod,
-                        'pMethodDetail' => $request->pMethodDetail,
                         'status'        => $action == "simpan" ? "pending" : "close",
                         'created_at'    => Carbon::now(),
                         'user_created'  => Auth::id(),
                     ]);
 
+                    $payments = $request->payment_method_details;
+                    foreach($payments AS $key => $val){
+                        DB::table('sales_payment_details')->insert([
+                            'sales_code'        => $code,
+                            'payment_method'    => $request->payment_method[$key],
+                            'payment_method_detail' => $val,
+                            'payment_charge'    => $request->payment_charge[$key],
+                            'nominal'           => $request->detail_nominal[$key],
+                            'created_at'        => Carbon::now()
+                        ]);
+                    }
+
                     // simpan sales details
-                    if ($request->itemcode > 0) {
-                        foreach ($request->itemcode as $key => $value) {
-                            if(!is_null($request->itemcode[$key]) || ($request->qty[$key] > 0)) {
-                                DB::table('sales_details')->insert([
-                                    'sales_id'      => $code,
-                                    'itemcode'      => $request->itemcode[$key],
-                                    'quantity'      => abs($request->qty[$key]),
-                                    'pricelist'     => $request->price_list[$key],
-                                    'sell_price'    => $request->price[$key],
-                                    'disc1'         => $request->disc1[$key],
-                                    'disc2'         => $request->disc2[$key],
-                                    'disc3'         => $request->disc3[$key],
-                                    'sub_total'     => $request->subtotal[$key],
-                                    'created_at'    => Carbon::now(),
-                                ]);
-                            }
-                        }
+                    $itemcodes = $request->itemcode;
+                    foreach ($itemcodes as $key => $value) {
+                        // if(!is_null($request->itemcode[$key]) || ($request->qty[$key] > 0)) {
+                            DB::table('sales_details')->insert([
+                                'sales_id'      => $code,
+                                'itemcode'      => $value,
+                                'quantity'      => abs($request->qty[$key]),
+                                'pricelist'     => $request->price_list[$key],
+                                'sell_price'    => $request->price[$key],
+                                'disc1'         => $request->disc1[$key],
+                                'disc2'         => $request->disc2[$key],
+                                'disc3'         => $request->disc3[$key],
+                                'sub_total'     => $request->subtotal[$key],
+                                'created_at'    => Carbon::now(),
+                            ]);
+                        // }
                     }
 
                     //update subGrandTotal & Grand Total
@@ -1065,6 +1074,7 @@ class POSControllers extends Controller
             $companies = DB::table('companies')->where('id', 1)->first();
             $configuration = DB::table('configurations')->where('id', 1)->first();
             $sales = DB::table('sales')->where('code', $code)->first();
+            // dd($sales);
 
             // data sales tidak ada
             if (is_null($sales)) {
