@@ -171,7 +171,7 @@
                                                 @foreach($cart_details AS $key => $value)
                                                 <tr id="row-item-detail{{ $key+1 }}" data-id="{{ $key+1 }}">
                                                     <td class="align-middle">
-                                                        <input class="form-control form-control-sm" type="hidden" id="itemcode{{ $key+1 }}" name="itemcode[]" value="`+itemcode+`">
+                                                        <input class="form-control form-control-sm" type="hidden" id="itemcode{{ $key+1 }}" name="itemcode[]" value="{{ $value->itemcode }}">
                                                         <dt>{{ $value->itemcode }}</dt>
                                                         <dd style="width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $value->itemname }}</dd>
                                                     </td>
@@ -614,11 +614,10 @@
             success: function(result) {
                 let htmlOption = "";
                 $.each(result.paymentMethod, function(key, value) {
-                    payM = `'`+value.code+`'`;
-                    console.log(payM)
+                    payM = `'`+value.type_payment+`'`;
                     htmlOption += `
-                        <button class="btn bg-lime btn-sm btn-block button-mthd" id=`+payM.replace(/\s/g, '')+` onclick="setPay(`+payM.replace(/\s/g, '')+`,`+payM+`,'')" style="padding: 25px;height: 15vh;color: #2e5781 !important;background-color: #dbdbdb17 !important; border: 1px solid #2e5781">
-                            <b>`+value.name+`</b>
+                        <button type="button" class="btn bg-lime btn-sm btn-block button-mthd" id=`+payM.replace(/\s/g, '')+` onclick="setPay(`+payM.replace(/\s/g, '')+`,`+payM+`,'')" style="padding: 25px;height: 15vh;color: #2e5781 !important;background-color: #dbdbdb17 !important; border: 1px solid #2e5781">
+                            <b>`+value.type_payment+`</b>
                         </button>
                     `;
                 });
@@ -645,46 +644,66 @@
         let href = '{{ route("sales.paymentMethod.details") }}';
         switch (e) {
             case "Cash":
-                $("#payment").html("");
-                $("#payment").html(`
-                    <div class="row">
-                        <input type="hidden" class="form-control" id="operator" value="+">
-                        <div class="col-sm-2 col-md-2">
-                            <button type="button" class="btn btn-success btn-block btn-xs" id="plusOperator" onclick="setOperator('+')" style="font-size: 20px !important;">+</button>
-                            <button type="button" class="btn btn-outline-success btn-block btn-xs" id="minOperator" onclick="setOperator('-')" style="font-size: 20px !important;">-</button>
-                        </div>
-                        <div class="col-sm-10 col-md-10">
-                            <div class="row justify-content-md-center">
-                                <div class="col-sm-6 col-md-6">
-                                    <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(500)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">500</button>
-                                </div>
-                                <div class="col-sm-6 col-md-6">
-                                    <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(10000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">10.000</button>
-                                </div>
-                                <div class="col-sm-6 col-md-6">
-                                    <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(1000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">1.000</button>
-                                </div>
-                                <div class="col-sm-6 col-md-6">
-                                    <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(20000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">20.000</button>
-                                </div>
-                                <div class="col-sm-6 col-md-6">
-                                    <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(2000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">2.000</button>
-                                </div>
-                                <div class="col-sm-6 col-md-6">
-                                    <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(50000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">50.000</button>
-                                </div>
-                                <div class="col-sm-6 col-md-6">
-                                    <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(5000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">5.000</button>
-                                </div>
-                                <div class="col-sm-6 col-md-6">
-                                    <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(100000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">100.000</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                // $("#payment").html("");
+                // $("#payment").html(`
+                //     <div class="row">
+                //         <input type="hidden" class="form-control" id="operator" value="+">
+                //         <div class="col-sm-2 col-md-2">
+                //             <button type="button" class="btn btn-success btn-block btn-xs" id="plusOperator" onclick="setOperator('+')" style="font-size: 20px !important;">+</button>
+                //             <button type="button" class="btn btn-outline-success btn-block btn-xs" id="minOperator" onclick="setOperator('-')" style="font-size: 20px !important;">-</button>
+                //         </div>
+                //         <div class="col-sm-10 col-md-10">
+                //             <div class="row justify-content-md-center">
+                //                 <div class="col-sm-6 col-md-6">
+                //                     <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(500)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">500</button>
+                //                 </div>
+                //                 <div class="col-sm-6 col-md-6">
+                //                     <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(10000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">10.000</button>
+                //                 </div>
+                //                 <div class="col-sm-6 col-md-6">
+                //                     <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(1000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">1.000</button>
+                //                 </div>
+                //                 <div class="col-sm-6 col-md-6">
+                //                     <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(20000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">20.000</button>
+                //                 </div>
+                //                 <div class="col-sm-6 col-md-6">
+                //                     <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(2000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">2.000</button>
+                //                 </div>
+                //                 <div class="col-sm-6 col-md-6">
+                //                     <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(50000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">50.000</button>
+                //                 </div>
+                //                 <div class="col-sm-6 col-md-6">
+                //                     <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(5000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">5.000</button>
+                //                 </div>
+                //                 <div class="col-sm-6 col-md-6">
+                //                     <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(100000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">100.000</button>
+                //                 </div>
+                //             </div>
+                //         </div>
+                //     </div>
+                // `);
+
+                let rowIndexPayment = $("#table-payments tbody tr").length;
+
+                $("#table-payments tbody").append(`
+                    <tr style="background-color: aliceblue;">
+                        <td class="align-middle" style="text-align: left;">
+                            <span>Cash</span><br>
+                            <small><b>Cash</b></small>
+                            <input type="hidden" name="payment_method[]" value="Cash">
+                            <input type="hidden" name="payment_method_details[]" value="Cash">
+                            <input type="hidden" name="payment_charge[]" value="0">
+                        </td>
+                        <td class="align-middle">0</td>
+                        <td><input class="form-control text-right" id="detail_nominal`+(rowIndexPayment+1)+`" name="detail_nominal[]" value="0" style="border:none;" onchange="paymentSum()"></td>
+                        <td class="align-middle" style="width: 4%;">
+                            <button class="btn btn-flat btn-outline bg-red btn-sm" onclick="$(this).closest('tr').remove(); paymentSum();"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
                 `);
+
                 break;
-            case "Credit":
+            case "CreditCard":
                 $.ajax({
                     url: href,
                     method: "POST",
@@ -698,10 +717,10 @@
                         console.log(result);
                         let htmlOption = "";
                         $.each(result.paymentMethodDetails, function(key, value) {
-                            payM = `'`+value.paymentCode+`'`;
+                            payM = `'`+value.type_payment+`'`;
                             htmlOption += `
                                 <div class="col-12 col-sm-4 col-md-3 col-lg-3 my-1">
-                                    <button class="btn bg-light btn-sm btn-block btn-payment" id="`+value.paymentCode+``+value.paymentDetails+`" onclick="paymentSet(`+payM+`,'`+value.paymentDetails+`', '`+value.u_charge+`', this.id)" style="min-height: 100px; max-height: 100px;">
+                                    <button class="btn bg-light btn-sm btn-block btn-payment" id="`+value.type_payment.replace(/\s/g, '')+``+value.nm_payment.replace(/\s/g, '')+`" onclick="paymentSet(`+payM+`,'`+value.nm_payment+`', '`+value.charge+`', this.id)" style="min-height: 100px; max-height: 100px;">
                                         <img src="{{ asset('dist/img/bank/`+value.image_details+`') }}" alt="" style="max-width: 100px;">
                                     </button>
                                 </div>
@@ -753,10 +772,10 @@
                         console.log(result);
                         let htmlOption = "";
                         $.each(result.paymentMethodDetails, function(key, value) {
-                            payM = `'`+value.paymentCode+`'`;
+                            payM = `'`+value.type_payment+`'`;
                             htmlOption += `
                                 <div class="col-12 col-sm-4 col-md-3 col-lg-3 my-1">
-                                    <button class="btn bg-light btn-sm btn-block btn-payment" id="`+value.paymentCode+``+value.paymentDetails+`" onclick="paymentSet(`+payM+`,'`+value.paymentDetails+`', '`+value.u_charge+`', this.id)" style="min-height: 100px; max-height: 100px;">
+                                    <button class="btn bg-light btn-sm btn-block btn-payment" id="`+value.type_payment+``+value.nm_payment+`" onclick="paymentSet(`+payM+`,'`+value.nm_payment+`', '`+value.charge+`', this.id)" style="min-height: 100px; max-height: 100px;">
                                         <img src="{{ asset('dist/img/bank/`+value.image_details+`') }}" alt="" style="max-width: 100px;">
                                     </button>
                                 </div>
@@ -808,10 +827,10 @@
                         console.log(result);
                         let htmlOption = "";
                         $.each(result.paymentMethodDetails, function(key, value) {
-                            payM = `'`+value.paymentCode+`'`;
+                            payM = `'`+value.type_payment+`'`;
                             htmlOption += `
                                 <div class="col-12 col-sm-4 col-md-3 col-lg-3 my-1">
-                                    <button class="btn bg-light btn-sm btn-block btn-payment" id="`+value.paymentCode+``+value.paymentDetails+`" onclick="paymentSet(`+payM+`,'`+value.paymentDetails+`', '`+value.u_charge+`', this.id)" style="min-height: 100px; max-height: 100px;">
+                                    <button class="btn bg-light btn-sm btn-block btn-payment" id="`+value.type_payment+``+value.nm_payment+`" onclick="paymentSet(`+payM+`,'`+value.nm_payment+`', '`+value.charge+`', this.id)" style="min-height: 100px; max-height: 100px;">
                                         <img src="{{ asset('dist/img/online/`+value.image_details+`') }}" alt="" style="max-width: 100px;">
                                     </button>
                                 </div>
@@ -849,10 +868,10 @@
                         console.log(result);
                         let htmlOption = "";
                         $.each(result.paymentMethodDetails, function(key, value) {
-                            payM = `'`+value.paymentCode+`'`;
+                            payM = `'`+value.type_payment+`'`;
                             htmlOption += `
                                 <div class="col-12 col-sm-4 col-md-3 col-lg-3 my-1">
-                                    <button class="btn bg-light btn-sm btn-block btn-payment" id="`+value.paymentCode+``+value.paymentDetails+`" onclick="paymentSet(`+payM+`,'`+value.paymentDetails+`', '`+value.u_charge+`', this.id)" style="min-height: 100px; max-height: 100px;">
+                                    <button class="btn bg-light btn-sm btn-block btn-payment" id="`+value.type_payment+``+value.nm_payment+`" onclick="paymentSet(`+payM+`,'`+value.nm_payment+`', '`+value.charge+`', this.id)" style="min-height: 100px; max-height: 100px;">
                                         <img src="{{ asset('dist/img/bank/`+value.image_details+`') }}" alt="" style="max-width: 100px;">
                                     </button>
                                 </div>
@@ -889,10 +908,10 @@
                     success: function(result) {
                         let htmlOption = "";
                         $.each(result.paymentMethodDetails, function(key, value) {
-                            payM = `'`+value.paymentCode+`'`;
+                            payM = `'`+value.type_payment+`'`;
                             htmlOption += `
                                 <div class="col-12 col-sm-4 col-md-3 col-lg-3 my-1">
-                                    <button class="btn bg-light btn-sm btn-block btn-payment" id="`+value.paymentCode+``+value.paymentDetails+`" onclick="paymentSet(`+payM+`,'`+value.paymentDetails+`', '`+value.u_charge+`', this.id)" style="min-height: 100px; max-height: 100px;">
+                                    <button class="btn bg-light btn-sm btn-block btn-payment" id="`+value.type_payment+``+value.nm_payment+`" onclick="paymentSet(`+payM+`,'`+value.type_payment+`', '`+value.charge+`', this.id)" style="min-height: 100px; max-height: 100px;">
                                         <img src="{{ asset('dist/img/bank/`+value.image_details+`') }}" alt="" style="max-width: 100px;">
                                     </button>
                                 </div>
@@ -1000,33 +1019,67 @@
     }; 
     
     const paymentSet = (method, methodDetails, charge, buttonId) => {
-        let total = parseInt($("#total").val());
+        let total = parseInt($("#sub_grand_total").val());
         total = total - parseInt($("#charge").val());
+        let rowIndexPayment = $("#table-payments tbody tr").length;
 
-        let paymentCharge =  total * parseFloat(charge)/100;
-        var newTotal = total + paymentCharge;
-        $("#charge").val(parseInt(paymentCharge));
-        $("#total").val(newTotal); 
+        $("#table-payments tbody").append(`
+            <tr style="background-color: aliceblue;">
+                <td class="align-middle" style="text-align: left;">
+                    <span>`+method+`</span><br>
+                    <small><b>`+methodDetails+`</b></small>
+                    <input type="hidden" name="payment_method[]" value="`+method+`">
+                    <input type="hidden" name="payment_method_details[]" value="`+methodDetails+`">
+                    <input type="hidden" name="payment_charge[]" value="`+charge+`">
+                </td>
+                <td class="align-middle">`+charge+`</td>
+                <td><input class="form-control text-right" id="detail_nominal`+(rowIndexPayment+1)+`" name="detail_nominal[]" value="0" style="border:none;" onchange="paymentSum()"></td>
+                <td class="align-middle" style="width: 4%;">
+                    <button class="btn btn-flat btn-outline bg-red btn-sm" onclick="$(this).closest('tr').remove(); paymentSum();"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>
+        `);
 
-        if(method == "TransferCash"){
-            let cash_ammount = parseInt($("#cash_amount").val());
-            if(cash_ammount == 0 || cash_ammount == ""){
-                alert("Please fill cash amount first");
-            } else {
-                let transfer_ammount = newTotal - cash_ammount;
+        // let paymentCharge =  total * parseFloat(charge)/100;
+        // var newTotal = total + paymentCharge;
+        // $("#charge").val(parseInt(paymentCharge));
+        // $("#total").val(newTotal); 
+
+        // if(method == "TransferCash"){
+        //     let cash_ammount = parseInt($("#cash_amount").val());
+        //     if(cash_ammount == 0 || cash_ammount == ""){
+        //         alert("Please fill cash amount first");
+        //     } else {
+        //         let transfer_ammount = newTotal - cash_ammount;
     
-                $("#transfer_ammount").val(transfer_ammount);
-                $("#setCashBack").val(formatNumber(cash_ammount + transfer_ammount));
-            }
-        } else {
-            $("#setCashBack").val(formatNumber(newTotal));
-        }
-        maskRupiah("#total_view", newTotal);
-        maskRupiah("#total_penjualan", newTotal);
+        //         $("#transfer_ammount").val(transfer_ammount);
+        //         $("#setCashBack").val(formatNumber(cash_ammount + transfer_ammount));
+        //     }
+        // } else {
+        //     $("#setCashBack").val(formatNumber(newTotal));
+        // }
+        // maskRupiah("#total_view", newTotal);
+        // maskRupiah("#total_penjualan", newTotal);
         
-        $("#pMethodDetails").val(methodDetails);
-        $(".btn-payment").removeClass("btn-dark");
-        $("#"+buttonId).addClass("btn-dark");
+        // $("#pMethodDetails").val(methodDetails);
+        // $(".btn-payment").removeClass("btn-dark");
+        // $("#"+buttonId).addClass("btn-dark");
+        setCashBack();
+    }
+
+    const paymentSum = () => { 
+        let rowIndexPayment = $("#table-payments tbody tr").length;
+        let totalPayment = 0;
+
+        for (let index = 1; index <= rowIndexPayment; index++) {
+            let pay = $("#detail_nominal"+index).val();
+
+            totalPayment = parseFloat(totalPayment) + parseFloat(pay);
+        }
+        console.log(totalPayment);
+
+        $("#setCashBack").val(formatNumber(totalPayment));
+
         setCashBack();
     }
 
@@ -1060,7 +1113,6 @@
                         <!-- /.description-block -->
                     </div>
                     <!-- /.col -->
-
                     <div class="col-sm-4 col-4">
                         <div class="description-block border-right">
                             <span class="description-text text-white">TOTAL DIBAYAR</span>
@@ -1069,8 +1121,7 @@
                         </div>
                         <!-- /.description-block -->
                     </div>
-                    <!-- /.col -->
-                                    
+                    <!-- /.col --> 
                     <div class="col-sm-4 col-4">
                         <div class="description-block">
                             <span class="description-text text-white">TOTAL KEMBALIAN</span>
@@ -1078,6 +1129,16 @@
                             <input type="text" class="form-control form-control text-white" placeholder="Kembali" id="cashBack" style="background-color: transparent; font-size: 17px; font-weight: bold; text-align: center; margin-top: -10px; border: none;" readonly>
                         </div>
                         <!-- /.description-block -->
+                    </div>
+                </div>
+                <div class="row py-2">
+                    <div class="col-md-12">
+                        <form id="records-table">
+                            <table class="table table-borderless table-sm fs-9" id="table-payments" style="font-size: 15px;">
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </form>
                     </div>
                 </div>
                 <div class="row py-2">
@@ -1095,6 +1156,7 @@
                 let cashBack = pay - total;
                 let pMethod = $("#pMethod").val();
                 let pMethodDetails = $("#pMethodDetails").val();
+                let paymentDetails = $("#records-table").serialize();
                 formData = formData + '&grandtotal='+ total;
                 formData = formData + '&charge='+ charge;
                 if(pMethod == "TransferCash"){
@@ -1111,8 +1173,7 @@
                     formData = formData + '&payNonCash='+ pay;
                 }
                 formData = formData + '&cashBack='+ cashBack;
-                formData = formData + '&pMethod='+ pMethod;
-                formData = formData + '&pMethodDetail='+ pMethodDetails;
+                formData = formData + '&'+ paymentDetails;
 
                 if (resultSwal1.isConfirmed && pay >= total) {
                     $.ajax({
@@ -1131,10 +1192,7 @@
                                     let cashBack = pay - total;
                                     let pMethod = $("#pMethod").val();
                                     let win = window.open(
-                                        "{{ url('') }}/sales/print/" + res.code_sales +
-                                        "?pay=" + pay +
-                                        "&cashback=" + cashBack +
-                                        "&pMethod=" + pMethod
+                                        "{{ url('') }}/sales/print/" + res.code_sales
                                     );
                                     let timer = setInterval(function() {
                                         if (win.closed) {

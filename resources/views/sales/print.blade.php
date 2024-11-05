@@ -75,7 +75,7 @@
             <tbody>
                 <tr>
                     <td colspan="3" align="center">
-                        <img src="/img/configurations/1" height="50px"/>
+                        <img src="{{ asset('dist/img/AdminLTELogo.png') }}" height="50px"/>
                     </td>
                 </tr>
                 <tr>
@@ -134,7 +134,7 @@
                     </td>
                     <td>:</td>
                     <td>
-                        {{ $sales->pMethod.' '.(($sales->pMethodDetail) ? $sales->pMethodDetail : "") }}
+                        {{-- {{ $sales->pMethod.' '.(($sales->pMethodDetail) ? $sales->pMethodDetail : "") }} --}}
                     </td>
                 </tr>
 
