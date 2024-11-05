@@ -1,11 +1,9 @@
 <aside class="main-sidebar sidebar-dark-primary elevation-4" style="background-color: #0A6EBD;">
   <!-- Brand Logo -->
   <a href="/" class="brand-link">
-    <img src="/dist/img/logo_circle.png" alt="Glo.POS" class="brand-image img-circle elevation-3" style="opacity: .8">
-    <span class="brand-text font-weight-bold text-light">Glo.</span>
-    <span class="brand-text font-weight-bold text-light">P</span>
-    <span class="brand-text font-weight-bold text-light">O</span>
-    <span class="brand-text font-weight-bold text-light">S</span>
+    <img src="/dist/img/sasoicon.png" alt="Glo.POS" class="brand-image img-circle elevation-3" style="opacity: .8">
+    <span class="brand-text font-weight-bold text-light">Sales Source</span>
+
   </a>
 
   <!-- Sidebar -->

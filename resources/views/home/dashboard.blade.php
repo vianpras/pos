@@ -27,9 +27,9 @@
                 <div id="sectionDefault">
                     <div class="d-flex align-items-center justify-content-center flex-column" style="height: 100vh;">
                         <div class="login-logo">
-                            <a href="/"><img src="/dist/img/logo.png" height="50px" /></a>
+                            <a href="/"><img src="/dist/img/logosaso.png" height="250px" /></a>
                         </div>
-                        <span class="p-2 h5 text-dark ">POS Web Base System</span>
+                        <!--<span class="p-2 h5 text-dark ">POS Web Base System</span>-->
                     </div>
                 </div>
                 {{-- end Default View --}}

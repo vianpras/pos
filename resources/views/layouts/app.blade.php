@@ -11,7 +11,7 @@
     <meta http-equiv="Expires" content="-1" />
     <title>{{ $title ?? '' }}</title>
     {{-- Favicon --}}
-    <link rel="icon" type="image/png" href="/dist/img/favicon.png" />
+    <link rel="icon" type="image/png" href="/dist/img/sasoicon.png" />
     <!-- Google Font: Source Sans Pro -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
     <!-- Font Awesome -->
@@ -55,7 +55,7 @@
         @if (session('logging'))
             <!-- Preloader -->
             <div class="preloader flex-column justify-content-center align-items-center">
-                <img class="animation__shake" src="/dist/img/logo.png" alt="Glo.POS" height="100">
+                <img class="animation__shake" src="/dist/img/sasoicon.png" alt="Glo.POS" height="100">
             </div>
         @endif
 

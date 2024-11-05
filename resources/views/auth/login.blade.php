@@ -32,16 +32,16 @@ background: linear-gradient(to right, #F27121, #E94057, #8A2387); /* W3C, IE 10+
       <div class="card" style="border-radius: 10px; ">
          <div class="card-body login-card-body" style="border-radius: 10px ">
             <div class="login-logo">
-               <a href="/"><img src="/dist/img/logo.png" height="50px" /></a>
+               <a href="/"><img src="/dist/img/logosaso.png" height="150px" /></a>
             </div>
             <hr>
             <p class="login-box-msg">Masuk Aplikasi </p>
-            <p class="login-box-msg">u/p : admin@coba.com / tidaktahu </p>
+            <p class="login-box-msg">u/p : superuser@admin.com / tidaktahu </p>
 
             <form method="POST" action="/authenticate" id="Validating">
                @csrf
                <div class="form-group input-group mb-3">
-                  <input type="email" name="email" class="form-control" placeholder="Email" value="admin@coba.com">
+                  <input type="email" name="email" class="form-control" placeholder="Email" value="superuser@admin.com">
                   <div class="input-group-append">
                      <div class="input-group-text">
                         <span class="fas fa-envelope"></span>
