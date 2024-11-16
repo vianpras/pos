@@ -34,7 +34,7 @@
         <li class="nav-item">
           <a href="#" class="nav-link @if($nav == 'salesCreate') active text-bold @endif">
             <i class="nav-icon fas fa-cash-register"></i>
-            <p>Penjualan Langsung <i class="right fas fa-angle-left"></i></p>
+            <p>Cashier<i class="right fas fa-angle-left"></i></p>
           </a>
           <ul class="nav nav-treeview">
             <li class="nav-item">
@@ -53,7 +53,7 @@
         <li class="nav-item">
           <a href="/sales/cart" class="nav-link @if($nav == 'cart') active text-bold @endif">
             <i class="nav-icon fas fa-cart-arrow-down"></i>
-            <p>Keranjang</p>
+            <p>Cart</p>
           </a>
         </li>
         {{-- data induk --}}
@@ -63,7 +63,7 @@
           <a href="#" class="nav-link @if($nav == 'data-induk') active text-bold @endif">
             <i class="nav-icon fas fa-database"></i>
             <p class="text-capitalize">
-              Data Induk
+              Data Master
               <i class="right fas fa-angle-left"></i>
             </p>
           </a>
