@@ -1,6 +1,11 @@
 @extends('layouts.app')
 
 @section('content')
+<style>
+    .select2-container{
+        width: 100% !important;
+    }
+</style>
 <div class="content-wrapper">
     <section class="content">
         <div class="row">
@@ -23,6 +28,19 @@
                     </div>
                     <div class="card-body">
                         <div class="row">
+                            @if(auth()->user()->site == "" || auth()->user()->site == NULL)
+                            <section class="col-xs-12 col-sm-12 col-md-12">
+                                <div class="form-group">
+                                    <label>Site<sup class="text-danger">*</sup></label>
+                                    <select class="form-control form-control-sm select2" name="site" id="site">
+                                        <option value="" disabled selected hidden>Choose</option>
+                                        @foreach($sites AS $site)
+                                            <option value="{{ $site->id_store }}">{{ $site->nm_store }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </section>
+                            @endif
                             <section class="col-xs-6 col-sm-6 col-md-6">
                                 <input type="hidden" id="docnum" name="docnum" value="{{ ($cart) ? $cart->docnum : 0 }}">
                                 <div class="form-group">
@@ -272,6 +290,7 @@
         var qty = $("#qty").val();
         var price = $("#price").val();
         var subtotal = $("#total").val();
+        var store = $("#site").find(":selected").val();
         var pricelist = $("#pricelist").find(":selected").val();
         var custcode = $("#custcode").find(":selected").val();
         var sales = $("#sales").data("id");
@@ -281,6 +300,7 @@
             url:"{{ url('sales/cart/store') }}",
             data:{
                 docnum      : docnum,
+                store       : store,
                 itemcode    : itemcode,
                 itemname    : itemname,
                 qty         : qty,
