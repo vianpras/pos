@@ -41,6 +41,8 @@ class CartControllers extends Controller
         $pricelist  = DB::table('SAPOPLN')->get();
         $customer   = DB::table('SAPOCRD')->select('SAPOCRD.*', DB::raw('RIGHT(SAPOCRD.phone, 4) AS phoneCode'))->get();
         $cart       = DB::table('sales_cart')->where('salesid', Auth::user()->id)->where('store_code', Auth::user()->site)->where('stage', '0')->first();
+        $site       = DB::table('pas_master_store')->get();
+
         if($cart){
             $cartDetails = DB::table('sales_cart_details')
                             ->leftJoin('SAPOPLN','sales_cart_details.pricelist_id','=','SAPOPLN.listnum')
@@ -52,6 +54,7 @@ class CartControllers extends Controller
             'subNav'    => 'cart',
             'title'     => 'Tambah Data',
             'pricelist' => $pricelist,
+            'sites'     => $site,
             'customer'  => $customer,
             'cart'      => $cart,
             'cart_details' => ($cart) ? $cartDetails : ""
@@ -64,11 +67,11 @@ class CartControllers extends Controller
         $docnum = $request->docnum;
         $sales = $request->sales;
         $custcode = $request->custcode;
-        $store = Auth::user()->site;
+        $store = ((Auth::user()->site) ? Auth::user()->site : $request->store);
 
         DB::beginTransaction();
         try {
-            if($docnum != 0){
+            if($docnum){
                 $dataCartSales =  DB::table('sales_cart')->where('docnum', $docnum)->where('stage', '1')->first();
                 if($dataCartSales){
                     DB::table('sales_cart_details')->insert([
@@ -114,7 +117,7 @@ class CartControllers extends Controller
                             $new_number = '0001';
                         }
         
-                        $docnum = Auth::user()->site.'-'.date('my').''.$new_number;
+                        $docnum = $store.'-'.date('my').''.$new_number;
         
                         DB::table('sales_cart')->insert([
                             'docnum'        => $docnum,
@@ -145,7 +148,7 @@ class CartControllers extends Controller
                     }
                 }
             } else {
-                $get_last_docnum = DB::table('sales_cart')->whereYear('cart_date', date('Y'))->whereMonth('cart_date', date('m'))->where('store_code', Auth::user()->site)->orderBy('created_at', 'DESC')->first();
+                $get_last_docnum = DB::table('sales_cart')->whereYear('cart_date', date('Y'))->whereMonth('cart_date', date('m'))->where('store_code', $store)->orderBy('created_at', 'DESC')->first();
     
                 if($get_last_docnum != ""){
                     $get_nomor    = substr($get_last_docnum->docnum, -4);
@@ -156,7 +159,7 @@ class CartControllers extends Controller
                     $new_number = '0001';
                 }
     
-                $docnum = Auth::user()->site.'-'.date('my').''.$new_number;
+                $docnum = $store.'-'.date('my').''.$new_number;
     
                 DB::table('sales_cart')->insert([
                     'docnum'        => $docnum,
