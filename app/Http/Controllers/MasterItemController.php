@@ -269,6 +269,7 @@ class MasterItemController extends Controller
         $itemprice = DB::table('SAPITM1')->where('itemcode', $itemcode)->where('pricelist', $listnum)->first();
 
         $var = [
+            'status'    => "success",
             'pricelist' => $pricelist,
             'itemprice' => $itemprice
         ];

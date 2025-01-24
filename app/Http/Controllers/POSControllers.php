@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Yajra\Datatables\Datatables;
+use Session;
 
 class POSControllers extends Controller
 {
@@ -27,18 +28,17 @@ class POSControllers extends Controller
     public function index()
     {
         if (Helper::checkACL('sales', 'r')) {
-            // render index
-            $membership = Helper::forSelect('memberships', 'code', 'nama', false, false);
+            $var = ['nav' => 'sales', 'subNav' => 'sales', 'title' => 'Transaksi Penjualan'];
 
-            $var = ['nav' => 'sales', 'subNav' => 'sales', 'title' => 'Transaksi Penjualan', 'membership' => $membership];
             return view('sales.index', $var);
         } else {
             // tidak memiliki otorisasi
             session()->flash('notifikasi', [
-                "icon" => config('global.errors.E002.status'),
-                "title" => config('global.errors.E002.code'),
-                "message" => config('global.errors.E002.message'),
+                "icon"      => config('global.errors.E002.status'),
+                "title"     => config('global.errors.E002.code'),
+                "message"   => config('global.errors.E002.message'),
             ]);
+
             return redirect('dashboard');
         }
     }
@@ -48,19 +48,20 @@ class POSControllers extends Controller
             if ($request->ajax()) {
                 // query data
                 $sales = DB::table('sales')
-                    ->leftJoin('memberships', 'sales.membership_code', '=', 'memberships.code')
+                    ->leftJoin('SAPOCRD', 'sales.customer', '=', 'SAPOCRD.cardcode')
+                    ->leftJoin('users', 'sales.user_created', '=', 'users.id')
+                    ->when(auth()->user()->site, function($query){
+                        $query->where('users.site', auth()->user()->site);
+                    })
                     ->select([
                         'sales.code as code',
-                        'sales.customer as customer',
+                        'SAPOCRD.cardname as customer',
                         'sales.date_order as date_order',
-                        'sales.table as table',
                         'sales.total as date_total',
-                        'memberships.nama as member',
                         'sales.status as status',
-                        'sales.pay as pay',
-                        'sales.cashBack as cashBack',
-                        'sales.pMethod as pMethod',
+                        'sales.cashBack as cashBack'
                     ]);
+
                 return Datatables::of($sales)
                     ->addColumn('action', function ($sales) {
                         // render column action
@@ -69,7 +70,7 @@ class POSControllers extends Controller
                             'show_url' => '/',
                             'id' => $sales->code,
                             'status' => $sales->status,
-                            'print_url' => '/sales/print/' . $sales->code.'?pay='.$sales->pay.'&cashback='.$sales->cashBack.'&pMethod='.$sales->pMethod,
+                            'print_url' => '/sales/print/' . $sales->code,
                         ]);
                     })
                     ->editColumn('status', function ($sales) {
@@ -77,9 +78,7 @@ class POSControllers extends Controller
                         $_status = Helper::statusBadge($sales->status);
                         return $_status;
                     })
-
                     ->filter(function ($query) use ($request) {
-
                         if ($request->has('sales_code_filter')) {
                             // default column filter
                             $query->where('sales.code', 'like', "%{$request->sales_code_filter}%");
@@ -135,19 +134,30 @@ class POSControllers extends Controller
 
             $pricelist  = DB::table('SAPOPLN')->get();
             $customer   = DB::table('SAPOCRD')->select('SAPOCRD.*', DB::raw('RIGHT(SAPOCRD.phone, 4) AS phoneCode'))->get();
-            
+
+            // Session::forget('details_order');
+            $session = Session::get('details_order');
+
             $cartCode = 0;
+            $cart_details = [];
+            $sales = [];
             if($request){
                 $cartCode = $request->cartCode;
                 $cart = DB::table('sales_cart')
                         ->leftJoin('users', 'sales_cart.salesid','=','users.id')
                         ->leftJoin('SAPOCRD', 'sales_cart.bussiness_partner','=','SAPOCRD.cardcode')
                         ->where('docnum', $cartCode)
+                        ->where('stage', '1')
                         ->select('sales_cart.*', 'SAPOCRD.cardname', 'SAPOCRD.phone', 'users.full_name')
                         ->first();
-                $cart_details = DB::table('sales_cart_details')->where('cart_id', $cartCode)->get();
-            }
-        
+                        
+                if($cart){
+                    $cart_details = DB::table('sales_cart_details')->where('cart_id', $cart->docnum)->get();
+                    $sales = DB::table('users')->where('id', $cart->salesid)->first();
+                }
+
+            } 
+
             $var = [
                 'nav'       => 'salesCreate',
                 'subNav'    => 'sales',
@@ -155,6 +165,8 @@ class POSControllers extends Controller
                 'items'     => $items,
                 'pricelist' => $pricelist,
                 'customer'  => $customer,
+                'docnum'    => $cartCode,
+                'sales'     => ($request) ? $sales : false,
                 'cart'      => ($request) ? $cart : false,
                 'cart_details' => ($request) ? $cart_details : false
             ];
@@ -204,180 +216,124 @@ class POSControllers extends Controller
     public function store(Request $request, $action)
     {
         if(Helper::checkACL('sales', 'c')) {
-            // Validation
-            // $vMessage = config('global.vMessage'); //get global validation messages\
-            // $validator = Validator::make($request->all(), [
-            //     'table' => 'required',
-            // ], $vMessage);
-            // // Valid?
-            // $valid = Helper::validationFail($validator);
-            // if (!is_null($valid)) {
-            //     return response()->json($valid); //return if not valid
-            // }
-
             // Query creator
             DB::beginTransaction();
-
             try {
                 $code = Helper::docPrefix('sales');
+                $cart = DB::table('sales_cart')->where('docnum', $request->docnum)->first();
+                $store = ((Auth::user()->site) ? Auth::user()->site : $request->store);
                 // jika bayar
-                if ($action == "bayar") {
-                    $sales = DB::table('sales')->insert([
-                        'code'          => $code,
-                        'customer'      => $request->custcode,
-                        'date_order'    => Carbon::now(),
-                        'discount'      => $request->discount,
-                        'sub_total'     => $request->total,
-                        'tax'           => $request->tax,
-                        'total'         => $request->grandtotal,
-                        'pCharge'        => $request->charge,
-                        'payCash'       => $request->payCash,
-                        'payNonCash'    => $request->payNonCash,
-                        'cashBack'      => $request->cashBack,
-                        'status'        => $action == "simpan" ? "pending" : "close",
-                        'created_at'    => Carbon::now(),
-                        'user_created'  => Auth::id(),
-                    ]);
+                
+                DB::table('sales')->insert([
+                    'docnum'        => $request->docnum,
+                    'code'          => $code,
+                    'customer'      => $request->custcode,
+                    'customer_detail' => $request->custname,
+                    'customer_number' => $request->custphone,
+                    'date_order'    => Carbon::now(),
+                    'discount'      => $request->discount,
+                    'sub_total'     => $request->total,
+                    'tax'           => $request->tax,
+                    'total'         => $request->grandtotal,
+                    'cashBack'      => $request->cashBack,
+                    'status'        => $action == "simpan" ? "pending" : "close",
+                    'salesid'       => $request->sales,
+                    'user_created'  => Auth::id(),
+                    'checkerid'     => $request->checker,
+                    'created_at'    => Carbon::now(),
+                    'site'          => $store,
+                    'approved_by'   => ($cart) ? $cart->approved_by : 0
+                ]);
 
-                    $payments = $request->payment_method_details;
-                    foreach($payments AS $key => $val){
-                        DB::table('sales_payment_details')->insert([
-                            'sales_code'        => $code,
-                            'payment_method'    => $request->payment_method[$key],
-                            'payment_method_detail' => $val,
-                            'payment_charge'    => $request->payment_charge[$key],
-                            'nominal'           => $request->detail_nominal[$key],
-                            'created_at'        => Carbon::now()
+                $payments = $request->payment_method_details;
+                foreach($payments AS $key => $val){
+                    DB::table('sales_payment_details')->insert([
+                        'sales_code'        => $code,
+                        'payment_method'    => $request->payment_method[$key],
+                        'payment_method_detail' => $val,
+                        'payment_charge'    => $request->payment_charge[$key],
+                        'nominal'           => $request->detail_nominal[$key],
+                        'created_at'        => Carbon::now()
+                    ]);
+                }
+
+                // simpan sales details
+                $itemcodes = $request->itemcode;
+                foreach ($itemcodes as $key => $value) {
+                    DB::table('sales_details')->insert([
+                        'sales_id'      => $code,
+                        'itemcode'      => $value,
+                        'quantity'      => abs($request->qty[$key]),
+                        'pricelist'     => $request->price_list[$key],
+                        'sell_price'    => $request->price[$key],
+                        'disc1'         => $request->disc1[$key],
+                        'disc2'         => $request->disc2[$key],
+                        'disc3'         => $request->disc3[$key],
+                        'sub_total'     => $request->subtotal[$key],
+                        'created_at'    => Carbon::now(),
+                    ]);
+                    
+                    $lastStok = DB::table('pas_kartustok')->where('itemcode', $value)->where('whcode', auth()->user()->site)->orderBy('id', 'DESC')->first();
+                    if($action != "simpan"){
+                        // Mengurangi stok
+                        $newStock = (($lastStok->saldo_akhir) ? $lastStok->saldo_akhir : 0) - $request->qty[$key];
+                        DB::table('pas_kartustok')->insert([
+                            'itemcode'  => $value,
+                            'whcode'    => auth()->user()->site,
+                            'tanggal'   => date('Y-m-d'),
+                            'ref_code'  => $code,
+                            'saldo_awal'=> $lastStok->saldo_akhir,
+                            'type_mutasi'=> 'keluar',
+                            'mutasi'    => $request->qty[$key],
+                            'saldo_akhir'=> $newStock,
+                            'type_doc'  => 'Kirim Item',
+                            'keterangan'=> 'Pengurangan item penjualan POS',
+                            'created_at'=> Carbon::now()
                         ]);
                     }
-
-                    // simpan sales details
-                    $itemcodes = $request->itemcode;
-                    foreach ($itemcodes as $key => $value) {
-                        // if(!is_null($request->itemcode[$key]) || ($request->qty[$key] > 0)) {
-                            DB::table('sales_details')->insert([
-                                'sales_id'      => $code,
-                                'itemcode'      => $value,
-                                'quantity'      => abs($request->qty[$key]),
-                                'pricelist'     => $request->price_list[$key],
-                                'sell_price'    => $request->price[$key],
-                                'disc1'         => $request->disc1[$key],
-                                'disc2'         => $request->disc2[$key],
-                                'disc3'         => $request->disc3[$key],
-                                'sub_total'     => $request->subtotal[$key],
-                                'created_at'    => Carbon::now(),
-                            ]);
-                        // }
-                    }
-
-                    //update subGrandTotal & Grand Total
-                    // $salesSum = DB::table('sales')
-                    //             ->where('code', $code)
-                    //             ->update([
-                    //                 'sub_total' => $subGrandTotal,
-                    //                 'total' => $GrandTotal,
-                    //                 'created_at' => Carbon::now(),
-                    //             ]);
-                    // $cart = DB::table('carts')->where([
-                    //             ['table', $request->table]
-                    //         ]);
-                    // if ($cart->count() > 0) {
-                    //     $deleteCartDetails = DB::table('cart_details')->where([
-                    //         ['cart_id', $cart->first()->id],
-                    //     ])->delete();
-                    //     $deleteCart = $cart->delete();
-                    // }
-
-                    // $get_last_nomor_jurnal = DB::table('pos_jurnal_umum')->orderBy('id', 'desc')->first();
-
-                    // $new_number = '';
-                    // if($get_last_nomor_jurnal){
-                    //     if($get_last_nomor_jurnal->no_jurnal_umum != ""){
-                    //         $explode_nomor = explode("-", $get_last_nomor_jurnal->no_jurnal_umum);
-                    //         $get_nomor = $explode_nomor[1];
-                    //         $count_number = (int)$get_nomor + 1;
-                            
-                    //         $new_number = sprintf("%05d", $count_number);
-                    //     } else {
-                    //         $new_number = '00001';
-                    //     }
-                    // } else {
-                    //     $new_number = '00001';
-                    // }
-                    // $generate_nomor_jurnal = "NJU-".$new_number;
-                    
-                    // $disc = $subGrandTotal * ($request->discount / 100);
-                    // $tax = $sumDisc * ($request->tax / 100);
-                    // $pendapatan = $subGrandTotal - $disc;
-                    // $kas = $pendapatan + $tax - $disc;
-
-                    // $akunKas = DB::table('chart_of_accounts')->where('code_account_default', '1.01.01.000.00')->first()->id;
-                    // $akunDiskon = DB::table('chart_of_accounts')->where('code_account_default', '4.05.00.000.00')->first()->id;
-                    // $akunPendapatan = DB::table('chart_of_accounts')->where('code_account_default', '4.00.00.000.00')->first()->id;
-                    // $akunPajak = DB::table('chart_of_accounts')->where('code_account_default', '2.01.03.001.00')->first()->id;
-                    
-                    // DB::table('pos_jurnal_umum')->insert([
-                    //         [
-                    //             'no_jurnal_umum' => $generate_nomor_jurnal,
-                    //             'tgl_transaksi' => Carbon::now(),
-                    //             'no_transaksi' => $code,
-                    //             'tipe' => 'penjualan',
-                    //             'kode_akun' => $akunKas,
-                    //             'debit' => $kas,
-                    //             'kredit' => 0,
-                    //             'sts_buku_besar' => 0,
-                    //             'keterangan' => '-',
-                    //             'sts_doc' => 0,
-                    //             'created_at' => Carbon::now(),
-                    //         ],[
-                    //             'no_jurnal_umum' => $generate_nomor_jurnal,
-                    //             'tgl_transaksi' => Carbon::now(),
-                    //             'no_transaksi' => $code,
-                    //             'tipe' => 'penjualan',
-                    //             'kode_akun' => $akunDiskon,
-                    //             'debit' => $disc,
-                    //             'kredit' => 0,
-                    //             'sts_buku_besar' => 0,
-                    //             'keterangan' => '-',
-                    //             'sts_doc' => 0,
-                    //             'created_at' => Carbon::now(),
-                    //         ],[
-                    //             'no_jurnal_umum' => $generate_nomor_jurnal,
-                    //             'tgl_transaksi' => Carbon::now(),
-                    //             'no_transaksi' => $code,
-                    //             'tipe' => 'penjualan',
-                    //             'kode_akun' => $akunPendapatan,
-                    //             'debit' => 0,
-                    //             'kredit' => $pendapatan,
-                    //             'sts_buku_besar' => 0,
-                    //             'keterangan' => '-',
-                    //             'sts_doc' => 0,
-                    //             'created_at' => Carbon::now(),
-                    //         ],[
-                    //             'no_jurnal_umum' => $generate_nomor_jurnal,
-                    //             'tgl_transaksi' => Carbon::now(),
-                    //             'no_transaksi' => $code,
-                    //             'tipe' => 'penjualan',
-                    //             'kode_akun' => $akunPajak,
-                    //             'debit' => 0,
-                    //             'kredit' => $tax,
-                    //             'sts_buku_besar' => 0,
-                    //             'keterangan' => '-',
-                    //             'sts_doc' => 0,
-                    //             'created_at' => Carbon::now(),
-                    //         ]
-                    //     ]);
-
-                    DB::commit();
-                    $code = ['code_sales' => $code];
-
-                    $result = array_merge($code, config('global.success.S002'));
                 }
+
+                if($action != "simpan"){
+                    // Membership
+                    $member = DB::table('sales_membership')->where('nomor_handphone', $request->custphone)->where('member_category', 'retail')->where('status', 'active')->first();
+                    if($member){
+                        $settingMember = DB::table('sales_membership_setting')->where('member_category', 'retail')->first();
+
+                        if($request->grandtotal >= $settingMember->min_transaksi){
+                            $pembagian = $request->grandtotal / $settingMember->min_transaksi;
+                            $point = floor($pembagian);
+
+                            DB::table('sales_membership_transaction_points')->insert([
+                                'member_id'         => $member->member_code,
+                                'transaction_code'  => $code,
+                                'transaction_amount'=> $request->grandtotal,
+                                'type'              => 'masuk',
+                                'point'             => $point,
+                                'site'              => auth()->user()->site,
+                                'created_at'        => Carbon::now()
+                            ]);
+
+                            $total_point = $member->total_point + $point;
+                            DB::table('sales_membership')->where('member_code', $member->member_code)->update([
+                                'total_point' => $total_point
+                            ]);
+                        }
+                    }
+                }
+
+                DB::table('sales_cart')->where('docnum', $request->docnum)->update(['stage' => '2']);
+
+                DB::commit();
+                $code = ['code_sales' => $code];
+
+                $result = array_merge($code, config('global.success.S002'));
+                
             } catch (\Throwable $e) {
                 DB::rollback();
-                // $result = config('global.errors.E010');
+
                 $result = $e->getMessage();
             }
+
             return response()->json($result);
         } else {
             //Tidak memiliki otorisasi
@@ -411,51 +367,42 @@ class POSControllers extends Controller
     {
         if (Helper::checkACL('sales', 'r')) {
             try {
-                $category = DB::table('categories')->select('code', 'name')->where('parent', '2')->get();
-                $parentCategory = DB::table('categories')->select('id')->where('code', 'SO')->first();
-                $checkCart = Helper::checkCart();
-                $items = DB::table('master_items')
-                    ->join('categories', 'categories.id', '=', 'master_items.category_id')
-                    ->select([
-                        'master_items.id as id',
-                        'master_items.kode_item as code',
-                        'master_items.nama_item as name',
-                        'master_items.sell_price as sell_price',
-                        'master_items.category_id as category_id',
-                        'categories.name as category_name',
-                    ])
-                    ->Where([
-                        ['master_items.status', '1'],
-                        ['categories.parent', $parentCategory->id],
-                    ])
-                    ->get();
-                $sales = DB::table('sales')
-                    ->where('code', $code)->first();
-                $sales_details = DB::table('sales_details')
-                    ->join('master_items', 'master_items.id', '=', 'sales_details.item_id')
-                    ->select([
-                        'sales_details.id as id',
-                        'sales_details.sales_id as sales_id',
-                        'sales_details.item_id as item_id',
-                        'sales_details.quantity as quantity',
-                        'sales_details.sell_price as sell_price',
-                        'sales_details.sub_total as sub_total',
-                        'sales_details.description as description',
-                        'master_items.kode_item as code',
-                        'master_items.nama_item as name',
-                    ])->orderBy('id', 'asc')
-                    ->where('sales_details.sales_id', $code)->get();
-                // $members = Helper::forSelect('memberships', 'code', DB::raw('CONCAT(code, "  -  " , nama) as member'), false, false);
+                $items      = DB::table('SAPOITM')->get();
+
+                $pricelist  = DB::table('SAPOPLN')->get();
+                $customer   = DB::table('SAPOCRD')->select('SAPOCRD.*', DB::raw('RIGHT(SAPOCRD.phone, 4) AS phoneCode'))->get();
+
+                $data = DB::table('sales')
+                            ->leftJoin('users', 'sales.user_created','=','users.id')
+                            ->leftJoin('SAPOCRD', 'sales.customer','=','SAPOCRD.cardcode')
+                            ->where('sales.code', $code)
+                            ->select('sales.*', 'SAPOCRD.cardname', 'SAPOCRD.phone')
+                            ->first();
+
+                DB::table('sales_cart')->where('docnum', $data->docnum)->update(['stage' => '1']);
+
+                $sales = DB::table('sales_cart')
+                        ->leftJoin('users', 'sales_cart.salesid','=','users.id')
+                        ->leftJoin('SAPOCRD', 'sales_cart.bussiness_partner','=','SAPOCRD.cardcode')
+                        ->where('docnum', $data->docnum)
+                        ->where('stage', '1')
+                        ->select('sales_cart.*', 'SAPOCRD.cardname', 'SAPOCRD.phone', 'users.full_name')
+                        ->first();
+                        
+                $sales_details = DB::table('sales_cart_details')->where('cart_id', $data->docnum)->get();
+
                 $var = [
-                    'nav' => 'sales',
-                    'subNav' => 'sales',
-                    'title' => 'Ubah Order Penjualan',
-                    'items' => $items,
-                    'data' => $sales,
-                    'sales_details' => $sales_details,
-                    'categories' => $category,
-                    'cart' => $checkCart,
+                    'nav'       => 'sales',
+                    'subNav'    => 'sales',
+                    'title'     => 'Ubah Order Penjualan',
+                    'items'     => $items,
+                    'pricelist' => $pricelist,
+                    'customer'  => $customer,
+                    'data'      => $data,
+                    'sales'     => $sales,
+                    'sales_details' => $sales_details
                 ];
+                
             } catch (\Throwable $th) {
                 session()->flash('notifikasi', [
                     "icon" => config('global.errors.E011.status'),
@@ -464,21 +411,25 @@ class POSControllers extends Controller
                 ]);
                 return redirect('sales');
             }
+
             if (is_null($sales)) {
                 session()->flash('notifikasi', [
                     "icon" => config('global.errors.E011.status'),
                     "title" => config('global.errors.E011.code'),
                     "message" => config('global.errors.E011.message'),
                 ]);
+
                 return redirect('sales');
             }
-            if ($sales->status == "closes") {
+
+            if ($data->status == "close") {
                 session()->flash('notifikasi', [
                     "icon" => 'warning',
                     "title" => config('global.errors.E014.code'),
                     "message" => config('global.errors.E014.message'),
                 ]);
                 return redirect('sales');
+
             } else {
                 return view('sales.edit', $var);
             }
@@ -503,116 +454,120 @@ class POSControllers extends Controller
     {
         if (Helper::checkACL('sales', 'u')) {
             $sales = DB::table('sales')->where('code', $code)->first();
-            // jika memakai status document
-            // if (($sales->status == 'cancel') || ($sales->status == 'close') || ($sales->status == 'confirm')) {
-            //     session()->flash('notifikasi', [
-            //         "icon" => config('global.errors.E014.status'),
-            //         "title" => config('global.errors.E014.code'),
-            //         "message" =>  config('global.errors.E014.message') . '. Status : ' . $sales->code . ' - ' . $sales->status,
-            //     ]);
-            //     return redirect()->route('sales');
-            // }
-
-            // Validation
-            $vMessage = config('global.vMessage'); //get global validation messages
-            $validator = Validator::make($request->all(), [
-                // 'table' => 'required',
-                // 'customer' => 'required',
-                'discount' => 'required',
-                'tax' => 'required',
-            ], $vMessage);
-            // Valid?
-            $valid = Helper::validationFail($validator);
-            if (!is_null($valid)) {
-                return response()->json($valid); //return if not valid
-            }
-            // Query creator
-
+            
+            DB::beginTransaction();
             try {
-                DB::beginTransaction();
                 // simpan header
-                $membership_code = DB::table('memberships')->where('code', $request->membership_code)->first();
-                $sales = DB::table('sales')
-                    ->where('code', $code)
-                    ->update([
-                        'membership_code' => is_null($membership_code) ? null : $request->membership_code,
-                        'discount' => $request->discount,
-                        'tax' => $request->tax,
-                        'updated_at' => Carbon::now(),
-                        'user_updated' => Auth::id(),
-                    ]);
+                DB::table('sales')->where('code', $code)->update([
+                    'customer'      => $request->custcode,
+                    'customer_detail' => $request->custname,
+                    'customer_number' => $request->custphone,
+                    'date_order'    => Carbon::now(),
+                    'discount'      => $request->discount,
+                    'sub_total'     => $request->total,
+                    'tax'           => $request->tax,
+                    'total'         => $request->grandtotal,
+                    'cashBack'      => $request->cashBack,
+                    'status'        => $action == "simpan" ? "pending" : "close",
+                    'updated_at'    => Carbon::now(),
+                    'user_updated'  => Auth::id(),
+                ]);
                 $subGrandTotal = 0;
                 $GrandTotal = 0;
 
                 // simpan sales details
-                if ($request->item_id > 0) {
-                    $salesDetails = DB::table('sales_details')->where('sales_id', $code)->get();
-                    foreach ($request->item_id as $key => $value) {
-                        $item = DB::table('master_items')->select('buy_price', 'sell_price')->where('id', $request->item_id[$key])->first();
-                        $subTotal = abs($request->quantity[$key]) * $item->sell_price;
-                        if (($request->item_id[$key])) {
-                            if (isset($request->sales_detail_id[$key])) {
-                                $salesDetail = DB::table('sales_details')->where('id', $request->sales_detail_id[$key])->first();
-                                if ($salesDetail->item_id == $request->item_id[$key]) {
-                                    DB::table('sales_details')
-                                        ->where('id', $request->sales_detail_id[$key])
-                                        ->update([
-                                            'quantity' => abs($request->quantity[$key]),
-                                            'buy_price' => $salesDetail->buy_price,
-                                            'sell_price' => $salesDetail->sell_price,
-                                            'sub_total' => $salesDetail->sell_price * abs($request->quantity[$key]),
-                                            'updated_at' => Carbon::now(),
-                                        ]);
-                                } else {
-                                    DB::table('sales_details')
-                                        ->where('id', $request->sales_detail_id[$key])
-                                        ->update([
-                                            'item_id' => $request->item_id[$key],
-                                            'quantity' => abs($request->quantity[$key]),
-                                            'buy_price' => $item->buy_price,
-                                            'sell_price' => $item->sell_price,
-                                            'sub_total' => $subTotal,
-                                            'updated_at' => Carbon::now(),
+                if ($request->itemcode > 0) {
+                    DB::table('sales_details')->where('sales_id', $code)->delete();
+                    $itemcodes = $request->itemcode;
+                    foreach ($itemcodes as $key => $value) {
+                        DB::table('sales_details')->insert([
+                            'sales_id'      => $code,
+                            'itemcode'      => $value,
+                            'quantity'      => abs($request->qty[$key]),
+                            'pricelist'     => $request->price_list[$key],
+                            'sell_price'    => $request->price[$key],
+                            'disc1'         => $request->disc1[$key],
+                            'disc2'         => $request->disc2[$key],
+                            'disc3'         => $request->disc3[$key],
+                            'sub_total'     => $request->subtotal[$key],
+                            'created_at'    => Carbon::now(),
+                        ]);
 
-                                        ]);
-                                }
-                            } else {
-                                DB::table('sales_details')
-                                    ->insert([
-                                        'sales_id' => $code,
-                                        'item_id' => $request->item_id[$key],
-                                        'quantity' => abs($request->quantity[$key]),
-                                        'buy_price' => $item->buy_price,
-                                        'sell_price' => $item->sell_price,
-                                        'sub_total' => $subTotal,
-                                        'created_at' => Carbon::now(),
-
-                                    ]);
-                            }
+                        $lastStok = DB::table('pas_kartustok')->where('itemcode', $value)->where('whcode', auth()->user()->site)->orderBy('id', 'DESC')->first();
+                        if($action != "simpan"){
+                            // Mengurangi stok
+                            $newStock = (($lastStok->saldo_akhir) ? $lastStok->saldo_akhir : 0) - $request->qty[$key];
+                            DB::table('pas_kartustok')->insert([
+                                'itemcode'  => $value,
+                                'whcode'    => auth()->user()->site,
+                                'tanggal'   => date('Y-m-d'),
+                                'ref_code'  => $code,
+                                'saldo_awal'=> $lastStok->saldo_akhir,
+                                'type_mutasi'=> 'keluar',
+                                'mutasi'    => $request->qty[$key],
+                                'saldo_akhir'=> $newStock,
+                                'type_doc'  => 'Kirim Item',
+                                'keterangan'=> 'Pengurangan item penjualan POS',
+                                'created_at'=> Carbon::now()
+                            ]);
                         }
                     }
                 }
 
-                $sumGrandTotal = DB::table('sales_details')->where('sales_id', $code)->sum('sub_total');
-                $sumDisc = $sumGrandTotal - ($sumGrandTotal * ($request->discount / 100));
-                $GrandTotal = $sumDisc + ($sumDisc * ($request->tax / 100));
-
-                //update sumGrandTotal & Grand Total
-                $salesSum = DB::table('sales')
-                    ->where('code', $code)
-                    ->update([
-                        'sub_total' => $sumGrandTotal,
-                        'total' => $GrandTotal,
-                        'updated_at' => Carbon::now(),
+                $payments = $request->payment_method_details;
+                DB::table('sales_payment_details')->where('sales_code', $code)->delete();
+                foreach($payments AS $key => $val){
+                    DB::table('sales_payment_details')->insert([
+                        'sales_code'        => $code,
+                        'payment_method'    => $request->payment_method[$key],
+                        'payment_method_detail' => $val,
+                        'payment_charge'    => $request->payment_charge[$key],
+                        'nominal'           => $request->detail_nominal[$key],
+                        'created_at'        => Carbon::now()
                     ]);
+                }
+
+                if($action != "simpan"){
+                    // Membership
+                    $member = DB::table('sales_membership')->where('nomor_handphone', $request->custphone)->where('member_category', 'retail')->where('status', 'active')->first();
+                    if($member){
+                        $settingMember = DB::table('sales_membership_setting')->where('member_category', 'retail')->first();
+
+                        if($request->grandtotal >= $settingMember->min_transaksi){
+                            $pembagian = $request->grandtotal / $settingMember->min_transaksi;
+                            $point = floor($pembagian);
+
+                            DB::table('sales_membership_transaction_points')->insert([
+                                'member_id'         => $member->member_code,
+                                'transaction_code'  => $code,
+                                'transaction_amount'=> $request->grandtotal,
+                                'type'              => 'masuk',
+                                'point'             => $point,
+                                'site'              => auth()->user()->site,
+                                'created_at'        => Carbon::now()
+                            ]);
+
+                            $total_point = $member->total_point + $point;
+                            DB::table('sales_membership')->where('member_code', $member->member_code)->update([
+                                'total_point' => $total_point
+                            ]);
+                        }
+                    }
+                }
+
                 DB::commit();
-                $result = config('global.success.S002');
+
+                $code = ['code_sales' => $code];
+
+                $result = array_merge($code, config('global.success.S002'));
+
             } catch (\Throwable $e) {
                 // $result = $e->getMessage();
                 DB::rollback();
-                $result = config('global.errors.E010');
-                return $e->getMessage();
+
+                $result = $e->getMessage();
             }
+
             return response()->json($result);
         } else {
             // tidak memiliki otorisasi
@@ -621,41 +576,108 @@ class POSControllers extends Controller
                 "title" => config('global.errors.E002.code'),
                 "message" => config('global.errors.E002.message'),
             ]);
+
             return redirect('dashboard');
         }
     }
 
-    public function storeChart(Request $request){
-        if (Helper::checkACL('sales', 'u')) {
+    // -- Cart atau Keranjang
+    public function storeCart(Request $request){   
+        if (Helper::checkACL('sales', 'c')) {
+            $docnum = $request->docnum;
+            $custcode = $request->custcode;
+            $sales = $request->sales;
+            $store = ((Auth::user()->site) ? Auth::user()->site : $request->store);
+
+            DB::beginTransaction();
             try {
-                DB::beginTransaction();
-                $masterCart = DB::table('carts')->where('table', $request->table)->first();
-                if($masterCart){
-                    DB::table('cart_details')->updateOrInsert(
-                        ['cart_id' => $masterCart->id, 'item_id' => $request->item_id],
-                        ['cart_id' => $masterCart->id, 'item_id' => $request->item_id, 'quantity' => $request->quantity, 'sell_price' => $request->sell_price, 'sub_total' => $request->sub_total, 'description' => $request->description]
-                    );
-                } else {
-                    $id = DB::table('carts')->insertGetId([
-                        'table' => $request->table,
-                        'user_created' => Auth::id(),
-                        'created_at' => Carbon::now()
+                if($docnum){
+                    DB::table('sales_cart')->updateOrInsert(['docnum' => $docnum],[
+                        'salesid'       => $sales,
+                        'bussiness_partner'         => $custcode,
+                        'bussiness_partner_detail'  => $request->custname,
+                        'bussiness_partner_phone'   => $request->custphone,
+                        'grandtotal'    => 0,
+                        'cart_date'     => date('Y-m-d'),
+                        'created_by'    => Auth::user()->id,
+                        'stage'         => '1',
+                        'created_at'    => date('Y-m-d H:i:s')
                     ]);
 
-                    DB::table('cart_details')->insert([
-                        'cart_id' => $id, 
-                        'item_id' => $request->item_id, 
-                        'quantity' => $request->quantity, 
-                        'sell_price' => $request->sell_price, 
-                        'sub_total' => $request->sub_total,
-                        'description' => $request->description
+                    DB::table('sales_cart_details')->updateOrInsert(['cart_id' => $docnum, 'itemcode' => $request->itemcode],[
+                        'cart_id'   => $docnum,
+                        'salesid'   => $sales,
+                        'bussiness_partner' => $custcode,
+                        'itemcode'  => $request->itemcode,
+                        'itemname'  => $request->itemname,
+                        'qty'       => $request->qty,
+                        'pricelist_id'  => $request->pricelist,
+                        'price'     => $request->price,
+                        'disc1'     => $request->disc1,
+                        'disc2'     => $request->disc2,
+                        'disc3'     => $request->disc3,
+                        'subtotal'  => $request->subtotal
+                    ]);
+    
+                    $grandtotal = DB::table('sales_cart_details')->where('cart_id', $docnum)->sum('subtotal');
+                    DB::table('sales_cart')->where('docnum', $docnum)->update([
+                        'grandtotal'  => $grandtotal
+                    ]);
+                } else {
+                    $get_last_docnum = DB::table('sales_cart')->whereYear('cart_date', date('Y'))->whereMonth('cart_date', date('m'))->where('store_code', $store)->orderBy('created_at', 'DESC')->first();
+        
+                    if($get_last_docnum != ""){
+                        $get_nomor    = substr($get_last_docnum->docnum, -4);
+                        $count_number = $get_nomor + 1;
+        
+                        $new_number = sprintf("%04d", $count_number);
+                    } else {
+                        $new_number = '0001';
+                    }
+        
+                    $docnum = $store.'-'.date('my').''.$new_number;
+        
+                    DB::table('sales_cart')->insert([
+                        'docnum'        => $docnum,
+                        'store_code'    => $store,
+                        'salesid'       => $sales,
+                        'bussiness_partner' => $custcode,
+                        'bussiness_partner_detail' => $request->custname,
+                        'bussiness_partner_phone' => $request->custphone,
+                        'grandtotal'    => 0,
+                        'cart_date'     => date('Y-m-d'),
+                        'created_by'    => Auth::user()->id,
+                        'stage'         => '1',
+                        'created_at'    => date('Y-m-d H:i:s')
+                    ]);
+        
+                    DB::table('sales_cart_details')->insert([
+                        'cart_id'   => $docnum,
+                        'salesid'   => $sales,
+                        'bussiness_partner' => $custcode,
+                        'itemcode'  => $request->itemcode,
+                        'itemname'  => $request->itemname,
+                        'qty'       => $request->qty,
+                        'pricelist_id'  => $request->pricelist,
+                        'price'     => $request->price,
+                        'subtotal'  => $request->subtotal
+                    ]);
+        
+                    $grandtotal = DB::table('sales_cart_details')->where('cart_id', $docnum)->sum('subtotal');
+                    DB::table('sales_cart')->where('docnum', $docnum)->update([
+                        'grandtotal'  => $grandtotal
                     ]);
                 }
                 DB::commit();
-                $result = config('global.success.S003');
+        
+                $result = [
+                    "status"    => "success",
+                    "message"   => "Data berhasil disimpan",
+                    "docnum"    => $docnum
+                ];
             } catch (\Throwable $th) {
                 DB::rollBack();
-                $result = config('global.errors.E009');
+                $result = $th->getMessage();
             }
             return response()->json($result);
         } else {
@@ -663,32 +685,6 @@ class POSControllers extends Controller
             $result = config('global.errors.E002');
         }
         return response()->json($result);
-    }
-
-    public function storeChartDiscount(Request $request)
-    {
-        if (Helper::checkACL('sales', 'u')) {
-            try {
-                DB::beginTransaction();
-
-                DB::table('carts')->where('table', $request->table)->update([
-                    'disc'      => $request->disc,
-                    'tax'       => $request->tax,
-                    'disc_rp'   => $request->disc_rp,
-                    'tax_rp'    => $request->tax_rp
-                ]);
-
-                DB::commit();
-                $result = config('global.success.S003');
-            } catch (\Throwable $th) {
-                DB::rollBack();
-                $result = config('global.errors.E009');
-            }
-        } else {
-            // tidak memiliki otorisasi
-            $result = config('global.errors.E002');
-        }
-        return response()->json($result); //return json ke request ajax
     }
 
     /**
@@ -703,14 +699,18 @@ class POSControllers extends Controller
             try {
                 DB::beginTransaction();
                 
-                $masterCart = DB::table('carts')->where('table', $request->table)->first();
+                DB::table('sales_cart_details')->where('cart_id', $request->docnum)->where('itemcode', $request->itemcode)->delete();
+
+                $details = DB::table('sales_cart_details')->where('cart_id', $request->docnum);
                 
-                DB::table('cart_details')->where('cart_id', $masterCart->id)->where('item_id', $request->item_id)->delete();
-
-                $detailCount = DB::table('cart_details')->where('cart_id', $masterCart->id)->count();
-
+                $grandTotal = $details->sum('subtotal');
+                DB::table('sales_cart')->where('docnum', $request->docnum)->update([
+                    'grandtotal' => $grandTotal
+                ]);
+                
+                $detailCount = $details->count();
                 if($detailCount == 0){
-                    DB::table('carts')->where('table', $request->table)->delete();
+                    DB::table('sales_cart')->where('docnum', $request->docnum)->delete();
                 }
 
                 $result = config('global.success.S003');
@@ -726,8 +726,42 @@ class POSControllers extends Controller
             // tidak memiliki otorisasi
             $result = config('global.errors.E002');
         }
+
         return response()->json($result); //return json ke request ajax
     }
+
+    public function approveCart(Request $request)
+    {
+        $user = DB::table('users')->where('email', $request->email_approval)->where('status', '1')->first();
+
+        $validCredentials = Hash::check($request->password_approval, $user->password);
+
+        $status = 'false';
+        $approved = 0;
+        if($validCredentials == true){
+            $checkAccess = DB::table('users')->leftJoin('role_permissions', 'users.role', '=', 'role_permissions.id')->where('users.id', $user->id)->where('role_permissions.approval_pricelist', 'c')->first();
+            if($checkAccess){
+                DB::table('sales_cart')->where('docnum', $request->docnum)->update([
+                    'approved_by' => $user->id,
+                    'approved_at' => Carbon::now()
+                ]);
+                $approved = $user->id;
+                $status = 'true';
+            } else {
+                $approved = 0;
+                $status = 'false';
+            }
+        }
+
+        $return = [
+            'status' => $status,
+            'approved' => $approved
+        ];
+
+        return response()->json($return);
+    }
+    // Cart atau Keranjang --
+
     public function disable(Request $request)
     {
         // disable data
@@ -930,151 +964,20 @@ class POSControllers extends Controller
         return $result;
     }
 
-    public function getItemDatatable(Request $request)
-    {
-        
-    }
-
-    public function getCart(Request $request)
-    {
-        if (Helper::checkACL('sales', 'r')) {
-            try {
-                $table = $request->id;
-                $cart = DB::table('carts')->where([
-                    ['table', $table],
-                ])->first();
-
-                if (is_null($cart)) {
-                    $result = config('global.errors.E011');
-                    return response()->json($result);
-                } else {
-                    $cartDetail = DB::table('cart_details')
-                        ->leftJoin('master_items', 'cart_details.item_id', '=', 'master_items.id')
-                        ->select([
-                            'cart_details.item_id as item_id',
-                            'master_items.kode_item as item_code',
-                            'master_items.nama_item as item_name',
-                            'cart_details.sell_price as sell_price',
-                            'cart_details.quantity as quantity',
-                            DB::raw('(CASE WHEN cart_details.description IS NULL THEN "" ELSE cart_details.description END) AS description')
-                        ])
-                        ->where([
-                            ['cart_details.cart_id', $cart->id],
-                        ])->get();
-
-                    $result = [
-                        'cart' => $cart,
-                        'cart_details' => $cartDetail,
-                    ];
-
-                    $result = array_merge($result, config('global.success.S000'));
-                }
-            } catch (\Throwable $th) {
-                $result = config('global.errors.E011');
-                $result = $th->getMessage();
-            }
-        } else {
-            $result = config('global.errors.E002');
-        }
-        return response()->json($result);
-    }
-    public function editSales(Request $request, $code, $confirm)
-    {
-        if (Helper::checkACL('sales', 'r')) {
-            // datanya
-            try {
-                $category = DB::table('categories')->select('code', 'name')->where('parent', '2')->get();
-
-                $sales = DB::table('sales')
-                    ->where('code', $code)->first();
-                $sales_details = DB::table('sales_details')
-                    ->join('master_items', 'master_items.id', '=', 'sales_details.item_id')
-                    ->join('categories', 'categories.id', '=', 'master_items.category_id')
-                    ->select([
-                        'sales_details.id as id',
-                        'sales_details.sales_id as sales_id',
-                        'sales_details.item_id as item_id',
-                        'sales_details.quantity as quantity',
-                        'sales_details.sell_price as sell_price',
-                        'sales_details.sub_total as sub_total',
-                        'sales_details.description as description',
-                        'master_items.kode_item as item_code',
-                        'master_items.nama_item as item_name',
-                        'categories.name as category_name',
-                    ])->orderBy('id', 'asc')
-                    ->where('sales_details.sales_id', $code)->get();
-                // ./datanya
-                if (is_null($sales)) {
-                    $result = config('global.errors.E011');
-                }
-                $result = $confirm;
-                if ($confirm == 'true') {
-                    $result = [
-                        'user' => $request->codeUser,
-                        'pass' => $request->codePass,
-                    ];
-                    // validasi user/pass
-                    $vMessage = config('global.vMessage'); //get global validation messages\
-                    $validator = Validator::make($request->all(), [
-                        // 'membership_code' => 'exists:memberships,code',
-                        'codeUser' => 'required',
-                        'codePass' => 'required',
-                    ], $vMessage);
-                    // Valid?
-                    $valid = Helper::validationFail($validator);
-                    if (!is_null($valid)) {
-                        return response()->json($valid); //return if not valid
-                    }
-                    // check otorisasi
-                    $getUser = DB::table('users')->where('username', $request->codeUser)->first();
-
-                    if (!is_null($getUser)) {
-                        // check hash pass
-                        $hash_password = $getUser->password;
-                        if (Hash::check($request->codePass, $hash_password)) {
-                            // return data
-                            $result = [
-                                'sales' => $sales,
-                                'sales_details' => $sales_details,
-                                'categories' => $category,
-                            ];
-                            $result = array_merge($result, config('global.success.S000'));
-                        } else {
-                            $result = config('global.errors.E001');
-                        }
-                    } else {
-                        $result = config('global.errors.E001');
-                    }
-                }
-                if ($confirm == "false") {
-                    // if ($sales->status == 'pending') {
-                    // tambahkandi pengaturan program ada otorisasi edit atau tidak
-                    // if ('a' == 'a') {
-                    // return all result
-                    $result = [
-                        'sales' => $sales,
-                        'sales_details' => $sales_details,
-                        'categories' => $category,
-                    ];
-                    $result = array_merge($result, config('global.success.S000'));
-                }
-            } catch (\Throwable $th) {
-                $result = config('global.errors.E011');
-                // $result = $checkUser;
-            }
-        } else {
-            $result = config('global.errors.E002');
-        }
-        return response()->json($result);
-    }
-
     public function printSales($code)
     {
         try {
-            $companies = DB::table('companies')->where('id', 1)->first();
-            $configuration = DB::table('configurations')->where('id', 1)->first();
-            $sales = DB::table('sales')->where('code', $code)->first();
-            // dd($sales);
+            $companies = DB::table('companies')->where('site_code', auth()->user()->site)->first();
+            $configuration = DB::table('configurations')->where('site_code', auth()->user()->site)->first();
+            $sales = DB::table('sales')
+                    ->leftJoin('SAPOCRD', 'sales.customer','=','SAPOCRD.cardcode')
+                    ->select('sales.*', 'SAPOCRD.cardname')
+                    ->where('code', $code)->first();
+
+            $totPayment = DB::table('sales_payment_details')->where('sales_code', $code)->sum('nominal');
+
+            $sales->payment = $totPayment;
+            
 
             // data sales tidak ada
             if (is_null($sales)) {
@@ -1088,6 +991,7 @@ class POSControllers extends Controller
             $sales_details = DB::table('sales_details')
                 ->leftJoin('SAPOITM', 'sales_details.itemcode', '=', 'SAPOITM.itemcode')
                 ->select([
+                    'SAPOITM.UDF_ItemCode as itemcode_short',
                     'SAPOITM.itemname as item_name',
                     'sales_details.sell_price as sell_price',
                     'sales_details.quantity as quantity',
@@ -1116,8 +1020,8 @@ class POSControllers extends Controller
 
     public function printSementara($table_id){
         try {
-            $companies = DB::table('companies')->where('id', 1)->first();
-            $configuration = DB::table('configurations')->where('id', 1)->first();
+            $companies = DB::table('companies')->where('site_code', auth()->user()->site)->first();
+            $configuration = DB::table('configurations')->where('site_code', auth()->user()->site)->first();
             $sales = DB::table('carts')->where('table', $table_id)->first();
             $sales_details = DB::table('cart_details')->leftJoin('master_items', 'cart_details.item_id','=','master_items.id')->where('cart_id', $sales->id)->get();
 
@@ -1143,8 +1047,8 @@ class POSControllers extends Controller
     public function printOrder($code)
     {
         try {
-            $companies = DB::table('companies')->where('id', 1)->first();
-            $configuration = DB::table('configurations')->where('id', 1)->first();
+            $companies = DB::table('companies')->where('site_code', auth()->user()->site)->first();
+            $configuration = DB::table('configurations')->where('site_code', auth()->user()->site)->first();
             // ambil juga data yang ada di cart
             $sales = DB::table('sales')->where('code', $code)->first();
             if (is_null($sales)) {
@@ -1184,5 +1088,94 @@ class POSControllers extends Controller
 
         ];
         return view('sales.orderPrint', $var);
+    }
+
+    public function refund($code, $action)
+    {
+        $header = DB::table('sales')->where('code', $code)->first();
+        $detail = DB::table('sales_details')->where('sales_id', $code)->get();
+
+        DB::table('sales')->where('code', $code)->update(['status' => 'return']);
+
+        foreach($detail AS $dt){
+            $lastStok = DB::table('pas_kartustok')->where('itemcode', $dt->itemcode)->where('whcode', auth()->user()->site)->orderBy('id', 'DESC')->first();
+
+            if($action != "simpan"){
+                $newStock = $lastStok->saldo_akhir + $dt->quantity;
+                DB::table('pas_kartustok')->insert([
+                    'itemcode'      => $dt->itemcode,
+                    'whcode'        => auth()->user()->site,
+                    'tanggal'       => date('Y-m-d'),
+                    'ref_code'      => $code,
+                    'saldo_awal'    => $lastStok->saldo_akhir,
+                    'type_mutasi'   => 'masuk',
+                    'mutasi'        => $dt->quantity,
+                    'saldo_akhir'   => $newStock,
+                    'type_doc'      => 'Terima Item',
+                    'keterangan'    => 'Penambahan item refund POS',
+                    'created_at'    => Carbon::now()
+                ]);
+            }
+        }
+
+        if($action != "simpan"){
+            // Membership
+            $member = DB::table('sales_membership')->where('nomor_handphone', $header->customer_number)->where('member_category', 'retail')->where('status', 'active')->first();
+            if($member){
+                $settingMember = DB::table('sales_membership_setting')->where('member_category', 'retail')->first();
+
+                if($header->total >= $settingMember->min_transaksi){
+                    $getPoin = DB::table('sales_membership_transaction_points')->where('member_id', $member->member_code)->where('transaction_code', $header->code)->first();
+
+                    DB::table('sales_membership_transaction_points')->insert([
+                        'member_id'         => $member->member_code,
+                        'transaction_code'  => $code,
+                        'transaction_amount'=> $getPoin->transaction_amount,
+                        'type'              => 'refund',
+                        'point'             => $getPoin->point,
+                        'site'              => auth()->user()->site,
+                        'created_at'        => Carbon::now()
+                    ]);
+
+                    $total_point = $member->total_point - $getPoin->point;
+                    DB::table('sales_membership')->where('member_code', $member->member_code)->update([
+                        'total_point' => $total_point
+                    ]);
+                }
+            }
+        }
+
+        $result = [
+            'status'    => 'success',
+            'code'      => $code
+        ];
+
+        return response()->json($result);
+
+    }
+    
+    public function refundCreate($code)
+    {
+        $header = DB::table('sales')->leftJoin('SAPOCRD', 'sales.customer', '=', 'SAPOCRD.cardcode')->where('sales.code', $code)->first();
+        $detail = DB::table('sales_details')
+                    ->leftJoin('SAPOITM', 'sales_details.itemcode', '=', 'SAPOITM.itemcode')
+                    ->where('sales_id', $code)->get();
+        $items      = DB::table('SAPOITM')->get();
+
+        $pricelist  = DB::table('SAPOPLN')->get();
+        $customer   = DB::table('SAPOCRD')->select('SAPOCRD.*', DB::raw('RIGHT(SAPOCRD.phone, 4) AS phoneCode'))->get();
+
+        $var = [
+            'nav'       => 'refund',
+            'subNav'    => 'refund',
+            'title'     => 'Refund Sales',
+            'items'     => $items,
+            'pricelist' => $pricelist,
+            'customer'  => $customer,
+            'header'    => $header,
+            'detail'    => $detail
+        ];
+        
+        return view('sales.refund', $var);
     }
 }

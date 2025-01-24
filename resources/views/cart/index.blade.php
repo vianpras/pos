@@ -49,14 +49,10 @@
                                     <div class="btn-group">
                                         <button type="button" class="btn btn-tool  " data-toggle="dropdown">
                                             <i class="fas fa-ellipsis-v fa-lg  text-secondary"></i>
-                
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-right" role="menu">
                                             @if(Helper::checkACL('master_unit', 'c'))
                                                 <a href="{{ url('sales/cart/create') }}" id="newButton" class="dropdown-item"> <i class="fas fa-plus-square"></i>&nbsp; Data Baru</a>
-                                            @endif
-                                            @if(Helper::checkACL('master_unit', 'i'))
-                                                <a href="#" class="dropdown-item"> <i class="fas fa-file-excel"></i> &nbsp; Impor Data</a>
                                             @endif
                                             <a href="#" class="dropdown-item" data-card-widget="collapse">
                                                 <i class="fas fa-search-plus"></i> &nbsp; Tampilkan
@@ -68,48 +64,34 @@
                         </div>
                     </div>
                     <div class="card-body" style="display: none;">
-                    <form method="POST" id="filterForm" class="form columnForm" role="form">
                         <div class="row">
                             <div class="col-sm-3">
                                 <div class="form-group">
-                                <label for="unit_name_filter">Nama</label>
-                                <input type="text" class="form-control form-control-sm" name="unit_name_filter" id="name"
-                                    placeholder="Filter Nama">
+                                <label for="docnum_filter">Kode Keranjang</label>
+                                <input type="text" class="form-control form-control-sm" name="docnum_filter" id="docnum_filter" placeholder="Filter Kode Keranjang">
                                 </div>
                             </div>
                             <div class="col-sm-3">
                                 <div class="form-group">
-                                <label for="unit_code_filter">Kode</label>
-                                <input type="text" class="form-control form-control-sm" name="unit_code_filter" id="code"
-                                    placeholder="Filter Code">
-                                </div>
-                            </div>
-                            <div class="col-sm-3">
-                                <div class="form-group">
-                                <label for="unit_status_filter">Status</label>
-                                <select class="form-control form-control-sm select2" style="width: 100%;"
-                                    name="unit_status_filter">
-                                    <option value='1'>Aktif</option>
-                                    <option value='0'>Non-Aktif</option>
-                                    <option value='-1' selected="selected">All</option>
-                                </select>
+                                <label for="dates_filter">Tanggal Periode</label>
+                                <input type="text" class="form-control form-control-sm daterange" name="dates_filter" id="reservation" placeholder="Filter Code">
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="card-footer">
                         <div class="float-right ">
-                            <button type="submit" class="btn btn-info btn-sm"><i class="fab fa-searchengin"></i> Cari</button>
+                            <button type="button" id="btnFilter" class="btn btn-info btn-sm"><i class="fab fa-searchengin"></i> Cari</button>
                         </div>
                     </div>
                 </div>
-                    </form>
                 <!-- /.Filter Box -->
-                <table id="dTable" class="table table-bordered table-striped table-hover" cellspacing="0" width="100%">
+                <table id="dTable" class="table table-sm table-bordered table-striped table-hover" cellspacing="0" width="100%">
                     <thead>
                         <tr align="center">
                             <th> Aksi </th>
                             <th> Nomor Keranjang </th>
+                            <th> Tanggal </th>
                             <th> Sales </th>
                             <th> Business Partner </th>
                             <th> Grandtotal </th>
@@ -163,7 +145,7 @@
                     className: 'btn bg-navy btn-sm',
 
                     exportOptions: {
-                        columns: [1, 2]
+                        columns: [1, 2, 3, 4, 5]
                     },
                 },
                 {
@@ -172,7 +154,7 @@
                     className: 'btn btn-warning btn-sm',
                     text: '<i class="fas fa-copy"></i>  Salin',
                     exportOptions: {
-                        columns: [1, 2]
+                        columns: [1, 2, 3, 4, 5]
                     },
                 },
                 {
@@ -180,19 +162,15 @@
                     className: 'btn btn-success btn-sm',
                     text: '<i class="fas fa-file-excel"></i> Excel',
                     exportOptions: {
-                        columns: [1, 2]
+                        columns: [1, 2, 3, 4, 5]
                     },
-
                 },
                 {
                     text: '<i class="fas fa-sync-alt"></i> Reset',
                     className: 'btn btn-danger btn-sm',
                     action: function (e, dt, node, config) {
-                        $('#filterForm')[0].reset();
-                        $('#dTable tfoot input').val('').change();
-                        $("#dTable").DataTable().columns().visible(true);
-                        $($.fn.dataTable.tables(true)).DataTable().columns.adjust();
-                        $("#dTable").DataTable().columns().search("").draw()
+                        $('input').val("");
+
                         $("#dTable").DataTable().draw();
                     },
                 },
@@ -209,17 +187,25 @@
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
                 data: function (d) {
-                    d.unit_name_filter = $('input[name=unit_name_filter]').val();
-                    d.unit_kode_filter = $('input[name=unit_kode_filter]').val();
-                    d.unit_date_filter = $('input[name=unit_date_filter]').val();
-                    d.unit_status_filter = $('select[name=unit_status_filter] option').filter(':selected').val()
+                    d.docnum_filter = $('input[name=docnum_filter]').val();
+                    d.dates_filter = $('input[name=dates_filter]').val();
                 }
             },
             columns: [
                 {data: 'action', name: 'action', 'orderable': false, 'searchable': false},
                 {data: 'docnum', name: 'docnum'},
+                {data: 'cart_date', name: 'cart_date'},
                 {data: 'full_name', name: 'full_name'},
-                {data: 'cardname', name: 'cardname'},
+                {
+                    mData: "cardname",
+                    mRender: function (data, type, row) {
+                        if(row.bussiness_partner_detail){
+                            return row.bussiness_partner_detail;
+                        } else {
+                            return data;
+                        }
+                    }
+                },
                 {
                     mData: "grandtotal",
                     className: 'text-right',
@@ -229,6 +215,13 @@
                 }
             ],
         });
+
+        //  sumbit filter and redraw
+        $('#btnFilter').on('click', function (e) {
+            dTable.draw();
+            e.preventDefault();
+        });
     });
+
 </script>
 @endsection

@@ -29,7 +29,7 @@ class CompanyControllers extends Controller
             // render index
             try {
                 //code...
-                $companies = DB::table('companies')->where('id', 1)->first();
+                $companies = DB::table('companies')->where('site_code', auth()->user()->site)->first();
                 is_null($companies) &&
                 $companies = (object)[
                     'owner' => '',
@@ -46,7 +46,7 @@ class CompanyControllers extends Controller
                     'twitter' => '',
                     'website' => '',
                 ];
-                $config = DB::table('configurations')->where('id', 1)->first();
+                $config = DB::table('configurations')->where('site_code', auth()->user()->site)->first();
                 is_null($config) &&
                     $config = (object) [
                         'id' => '',
@@ -65,14 +65,13 @@ class CompanyControllers extends Controller
                     "message" => config('global.errors.E999.message'),
                 ]);
             }
-            // dump();
 
             $var = [
-                'nav' => 'data-induk',
-                'subNav' => 'company',
-                'title' => 'Pengaturan Perusahaan & Aplikasi',
-                'company' => $companies,
-                'config' => $config
+                'nav'       => 'data-induk',
+                'subNav'    => 'company',
+                'title'     => 'Pengaturan Perusahaan & Aplikasi',
+                'company'   => $companies,
+                'config'    => $config
             ];
             return view('master.company.index', $var);
         } else {
@@ -105,7 +104,7 @@ class CompanyControllers extends Controller
     public function store(Request $request)
     {
         if ((Helper::checkACL('company', 'c')) || (Helper::checkACL('company', 'u'))) {
-            // dd($request->change_authorization);
+
             $vMessage = config('global.vMessage'); //get global validation messages
             $validator = Validator::make($request->all(), [
                 'image' => ['image', 'mimes:jpeg,bmp,png', 'max:2048', 'required'],
@@ -115,11 +114,10 @@ class CompanyControllers extends Controller
             $valid = Helper::validationFail($validator);
             try {
                 // companies
-                $checkCompanies = DB::table('companies')->where('id', 1)->first();
+                $checkCompanies = DB::table('companies')->where('site_code', auth()->user()->site)->first();
                 if (is_null($checkCompanies)) {
                     $insertCompanies = DB::table('companies')
                         ->insertGetId([
-                            'id' => 1,
                             'owner' => $request->owner,
                             'name' => $request->name,
                             'address1' => $request->address1,
@@ -133,13 +131,13 @@ class CompanyControllers extends Controller
                             'instagram' => $request->instagram,
                             'twitter' => $request->twitter,
                             'website' => $request->website,
-                             'created_at' => Carbon::now(),
-                             'user_created' => Auth::id(),
+                            'site_code' => auth()->user()->site,
+                            'created_at' => Carbon::now(),
+                            'user_created' => Auth::id(),
                         ]);
                 } else {
-
                     $updateCompanies = DB::table('companies')
-                        ->where('id', 1)
+                        ->where('site_code', auth()->user()->site)
                         ->update([
                             'owner' => $request->owner,
                             'name' => $request->name,
@@ -154,17 +152,17 @@ class CompanyControllers extends Controller
                             'instagram' => $request->instagram,
                             'twitter' => $request->twitter,
                             'website' => $request->website,
+                            'site_code' => auth()->user()->site,
                             'updated_at' => Carbon::now(),
-                             'user_updated' => Auth::id(),
+                            'user_updated' => Auth::id(),
                         ]);
                 }
 
                 // configurations
-                $checkConfigurations = DB::table('configurations')->where('id', 1)->first();
+                $checkConfigurations = DB::table('configurations')->where('site_code', auth()->user()->site)->first();
                 if (is_null($checkConfigurations)) {
                     $insertConfigurations = DB::table('configurations')
                         ->insertGetId([
-                            'id' => 1,
                             'total_cart' => $request->total_cart,
                             'change_authorization' => is_null($request->change_authorization) ? 0 : 1,
                             'set_inventory' => is_null($request->set_inventory) ? 0 : 1,
@@ -172,14 +170,14 @@ class CompanyControllers extends Controller
                             'print_footer1' => $request->print_footer1,
                             'print_footer2' => $request->print_footer2,
                             'print_footer3' => $request->print_footer3,
+                            'site_code' => auth()->user()->site,
                             'created_at' => Carbon::now(),
                             'user_created' => Auth::id(),
                         ]);
                 } else {
                     $updateConfigurations = DB::table('configurations')
-                        ->where('id', 1)
+                        ->where('site_code', auth()->user()->site)
                         ->update([
-                            'id' => 1,
                             'total_cart' => $request->total_cart,
                             'change_authorization' => is_null($request->change_authorization) ? 0 : 1,
                             'set_inventory' => is_null($request->set_inventory) ? 0 : 1,
@@ -187,6 +185,7 @@ class CompanyControllers extends Controller
                             'print_footer1' => $request->print_footer1,
                             'print_footer2' => $request->print_footer2,
                             'print_footer3' => $request->print_footer3,
+                            'site_code' => auth()->user()->site,
                             'updated_at' => Carbon::now(),
                             'user_updated' => Auth::id(),
                         ]);
@@ -195,7 +194,7 @@ class CompanyControllers extends Controller
                 if ($request->hasFile('image')) {
                     $gambar = $request->file('image');
                     if ($request->file('image')->isValid()) {
-                        $gambar->storeAs('/configurations', 1, 'private');
+                        $gambar->storeAs('/configurations', auth()->user()->site, 'private');
                     }
                 }
                 $result = config('global.success.S000');

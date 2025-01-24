@@ -74,10 +74,9 @@ class Helper
          }
          $stmt->execute();
          $data = $stmt->fetch($pdo::FETCH_ASSOC);
-         // dd($data);
+
          $pdo = null;
          if ((is_array($data) >= 1)) {
-            // dd($data);
 
             $id = $data['id'];
             $hash_password = $data['password'];
@@ -118,17 +117,20 @@ class Helper
       if (empty($nameRoute)) {
          $result = $appName;
       }
+
       return $result;
    }
    public static function saveCurrency($value)
    {
       $delDot = str_replace('.', '', $value);
       $result = str_replace(',00', '', $delDot);
+
       return $result;
    }
    public static function setCurrency($value)
    {
       $result = number_format($value, 2, ",", ".");
+      
       return $result;
    }
 
@@ -338,7 +340,7 @@ class Helper
    {
       try {
          //code...
-         $countDoc = DB::table($type)->count() + 1;
+         $countDoc = DB::table('sales_membership')->count() + 1;
          $prefix = DB::table('_docPrefix')->select('prefix')->where('docType', $type)->first()->prefix;
          $result = $prefix . Helper::zerofill($countDoc, 5);
       } catch (\Throwable $th) {

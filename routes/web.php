@@ -196,8 +196,13 @@ Route::middleware(['auth'])->group(function () {
     Route::post('keanggotaan/store', 'MembershipControllers@store')->name('keanggotaan.store'); //post save keanggotaan
     Route::post('keanggotaan/email_member', 'MembershipControllers@emailMember')->name('keanggotaan.email'); //post email persetujuan keanggotaan
     Route::get('keanggotaan/edit/{code}', 'MembershipControllers@edit')->name('keanggotaan.edit'); //page edit
-    Route::post('keanggotaan/update/{code}', 'MembershipControllers@update')->name('keanggotaan.update'); //post update keanggotaan
+    Route::post('keanggotaan/update', 'MembershipControllers@update')->name('keanggotaan.update'); //post update keanggotaan
     Route::post('keanggotaan/disable/', 'MembershipControllers@disable')->name('disableKeanggotaan'); //post disable 
+    Route::post('keanggotaan/check/', 'MembershipControllers@check')->name('checkKeanggotaan'); //post disable 
+    Route::get('keanggotaan/settings', 'MembershipControllers@settingMember')->name('keanggotaan.setting'); //page edit
+    Route::post('keanggotaan/settings/store', 'MembershipControllers@settingMemberStore')->name('keanggotaan.setting.store'); //page edit
+    Route::get('keanggotaan/history/point', 'MembershipControllers@history')->name('keanggotaan.history'); //page edit
+    Route::post('keanggotaan/history/datatable', 'MembershipControllers@historyDatatable')->name('keanggotaan.history.datatable'); //page edit
     // .keanggotaan 
 
     // booking 
@@ -207,7 +212,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('booking/store', 'BookingControllers@store')->name('booking.store'); //post save booking
     Route::get('booking/edit/{code}', 'BookingControllers@edit')->name('booking.edit'); //page edit
     Route::post('booking/update/{code}', 'BookingControllers@update')->name('booking.update'); //post update booking
-    Route::post('booking/disable/', 'BookingControllers@disable')->name('disableKeanggotaan'); //post disable 
+    Route::post('booking/disable/', 'BookingControllers@disable'); //post disable 
     Route::post('booking/getItem/', 'BookingControllers@getItem')->name('getItem'); //
     Route::post('booking/getMember/', 'BookingControllers@getMember')->name('getMember'); //
     Route::post('booking/getDataMember/', 'BookingControllers@getDataMember')->name('getDataMember'); //
@@ -215,24 +220,34 @@ Route::middleware(['auth'])->group(function () {
 
     // pos 
     Route::get('sales', 'POSControllers@index')->name('sales'); // index pos
-    Route::post('sales/datatable', 'POSControllers@datatable')->name('sales.datatable'); // index pos
+    Route::post('sales/datatable/main', 'POSControllers@datatable')->name('sales.datatable'); // index pos
     Route::get('sales/create', 'POSControllers@create')->name('sales.new'); //modal create pos
     Route::post('sales/store/{action}', 'POSControllers@store')->name('sales.store'); //post save pos
     Route::get('sales/edit/{code}', 'POSControllers@edit')->name('sales.edit'); //page edit
     Route::post('sales/update/{code}/{action}', 'POSControllers@update')->name('sales.update'); //post update pos
-    Route::post('sales/disable/', 'POSControllers@disable')->name('disableKeanggotaan'); //post disable 
+    Route::post('sales/disable/', 'POSControllers@disable'); //post disable 
     Route::post('sales/getItem/', 'POSControllers@getItem')->name('getItemSales'); //
     Route::post('sales/getDataMember/', 'POSControllers@getDataMember')->name('getDataMemberSales'); //
+
+    Route::post('sales/session/store', 'POSControllers@storeSession')->name('storeSession'); //
+    Route::post('sales/session/approve', 'POSControllers@approveSession')->name('approveSession'); //
+    Route::post('sales/session/delete', 'POSControllers@deleteSession')->name('deleteSession'); //
+
+    Route::post('sales/storeCart/', 'POSControllers@storeCart')->name('storeCart'); //
     Route::post('sales/removeCart/', 'POSControllers@removeCart')->name('removeCartSales'); //
-    Route::post('sales/storeCart/', 'POSControllers@storeChart')->name('storeCart'); //
     Route::post('sales/getCart/', 'POSControllers@getCart')->name('removeGetCart'); //
     Route::post('sales/chart/tax_discount/', 'POSControllers@storeChartDiscount')->name('storeCartDiscount'); //
+    Route::post('sales/approveCart/', 'POSControllers@approveCart')->name('approveCart'); //
+    
     Route::post('sales/editSales/{code}/{confirm}', 'POSControllers@editSales')->name('editSales'); //
     Route::get('sales/print/{code}/', 'POSControllers@printSales')->name('printSales'); //
     Route::get('sales/print/sementara/{table}/', 'POSControllers@printSementara')->name('printSalesSementara'); //
     Route::get('sales/order/{code}/', 'POSControllers@printOrder')->name('printOrder'); //
     Route::get('sales/payment_method/', 'POSControllers@paymentMethod')->name('sales.paymentMethod'); //
     Route::post('sales/payment_method/details', 'POSControllers@paymentMethodDetails')->name('sales.paymentMethod.details'); //
+
+    Route::get('refund/sales/{code}/{cation}', 'POSControllers@refund')->name('sales.refund');
+    Route::get('create/refund/sales/{code}', 'POSControllers@refundCreate')->name('sales.refund.create');
     // .pos
 
     // pos 2
@@ -249,6 +264,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('sales/cart/delete', 'CartControllers@delete')->name('sales.cart.delete');
     Route::post('sales/cart/commit', 'CartControllers@commit')->name('sales.cart.commit');
     Route::post('sales/cart/detailPricelist', 'CartControllers@detailPricelist');
+    Route::get('sales/cart/autocomplete', 'CartControllers@autocomplete')->name('sales.cart.autocomplete');
     // .cart
 
     // purchase 

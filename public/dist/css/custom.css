@@ -1,6 +1,10 @@
 /* select2-selection select2-selection--multiple */
 /* custom_css select 2 */
 /* single */
+.select2-container--default {
+    width: 100% !important;
+}
+
 .select2-container--default .select2-selection--single {
     /* background-color: #343a40; */
     color: #343a40;
@@ -82,7 +86,6 @@ select.form-control-sm
     margin-top: 5px;
     padding: 0 5px;
 }
-
 
 .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
     color: #eee;

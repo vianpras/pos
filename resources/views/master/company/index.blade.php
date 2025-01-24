@@ -91,7 +91,7 @@
                                                             <div class="" style="max-width:150px">
                                                                 <img style="max-width:150px; margin-right:20px;"
                                                                     id="output_image" class="img-thumbnail"
-                                                                    src='/img/configurations/1' />
+                                                                    src='/img/configurations/{{ auth()->user()->site }}' />
                                                             </div>
 
                                                             <div class="custom-file"

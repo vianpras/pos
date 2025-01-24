@@ -1,6 +1,6 @@
 <center>
    @if(Helper::checkACL('membership', 'e'))
-   <button type="button" id="editButton" class="btn btn-outline-info btn-xs" data-toggle="modal" data-id="{{ $id }}" data-attr="{{ route('keanggotaan.edit', $id) }}" data-target="#modalBlade">
+   <button type="button" id="editButton" class="btn btn-outline-info btn-xs" data-toggle="modal" data-id="{{ $id }}" data-attr="{{ route('keanggotaan.edit', $id) }}" onclick="location.href='{{ route('keanggotaan.edit', $id) }}'">
       <i class="fas fa-edit"></i>
    </button>
    @endif

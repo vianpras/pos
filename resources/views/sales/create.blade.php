@@ -18,7 +18,8 @@
                         <div class="card-body">
                             <div class="row">
                                 <section class="col-sm-6">
-                                    <input type="hidden" id="docnum" name="docnum" value="{{ ($cart) ? $cart->docnum : 0 }}">
+                                    <input type="hidden" id="docnum" name="docnum" value="{{ ($docnum) ? $docnum : 0 }}">
+                                    <input type="hidden" id="approval_user" name="approval_user" value="0">
                                     <div class="form-group">
                                         <label for="membership_code"><sup class="text-red">*</sup>Business Partner Code</label>
                                         <select class="form-control form-control-sm select2" name="custcode" id="custcode" onchange="setBusinessPartner(this.value)">
@@ -30,17 +31,23 @@
                                     </div>
                                     <div class="form-group">
                                         <label for="membership_code"><sup class="text-red">*</sup>Business Partner Name</label>
-                                        <input type="text" class="form-control form-control-sm" name="custname" id="custname" placeholder="Business Partner Name" value="{{ (($cart) ? $cart->cardname : "") }}" readonly>
+                                        <input type="text" class="form-control form-control-sm" name="custname" id="custname" placeholder="Business Partner Name" value="{{ (($cart) ? $cart->bussiness_partner_detail : "") }}">
                                     </div>
                                     <div class="form-group">
                                         <label for="membership_code"><sup class="text-red">*</sup>Telephone Number</label>
-                                        <input type="text" class="form-control form-control-sm" name="custphone" id="custphone" placeholder="Telephone Number" value="{{ (($cart) ? $cart->phone : "") }}" readonly>
+                                        <input type="text" class="form-control form-control-sm" name="custphone" id="custphone" placeholder="Telephone Number" value="{{ (($cart) ? $cart->bussiness_partner_phone : "") }}" onchange="checkMember(this.value)">
                                     </div>
                                 </section>
                                 <section class="col-sm-6">
-                                    <div class="form-group">
-                                        <label for="membership_code">Sales</label>
-                                        <input type="text" class="form-control form-control-sm" name="sales" id="sales" placeholder="Sales" value="{{ Auth::user()->full_name }}" data-id="{{ Auth::user()->id }}" readonly>
+                                    <div class="row">
+                                        <div class="form-group col-sm-6">
+                                            <label for="membership_code">Kasir</label>
+                                            <input type="text" class="form-control form-control-sm" name="kasir" id="kasir" placeholder="kasir" value="{{ Auth::user()->full_name }}" data-id="{{ Auth::user()->id }}" readonly>
+                                        </div>
+                                        <div class="form-group col-sm-6">
+                                            <label for="membership_code">Sales</label>
+                                            <input type="text" class="form-control form-control-sm" name="sales" id="sales" placeholder="Sales" value="{{ ($sales) ? $sales->full_name : Auth::user()->full_name }}" data-id="{{ ($sales) ? $sales->id : Auth::user()->id }}" readonly>
+                                        </div>
                                     </div>
                                     <div class="form-group">
                                         <label for="membership_code">Checker</label>
@@ -62,6 +69,20 @@
                                         </div>
                                     </div>
                                 </section>
+                            </div>
+                            <div class="row content_collapse" style="display: none; overflow: hidden; transition: all 1s;">
+                                <div class="col-md-12">
+                                    <table class="table table-sm table-info">
+                                        <tr>
+                                            <th colspan="3" class="text-info">Informasi Member</th>
+                                        </tr>
+                                        <tr>
+                                            <td width="70%" id="full_name_member"></td>
+                                            <td width="15%" class="text-center" id="point_member"></td>
+                                            <td width="15%" class="text-center" id="member_status"></td>
+                                        </tr>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -146,7 +167,7 @@
                                     ];
                                     $enkripsi= Crypt::encrypt($parameter);
                                 @endphp
-                                <a href="http://127.0.0.1:8002/auth/loginBySwitch?param={{ $enkripsi }}" class="btn btn-flat btn-outline-warning" target="_blank"><span class="fas fa-exchange-alt"></span> Switch</a>
+                                {{-- <a href="http://127.0.0.1:8002/auth/loginBySwitch?param={{ $enkripsi }}" class="btn btn-flat btn-outline-warning" target="_blank"><span class="fas fa-exchange-alt"></span> Switch</a> --}}
                                 {{-- <button type="button" class="btn btn-flat btn-outline-info" onclick="selectItem()"></button> --}}
                             @endif
                             <div class="row gx-3">
@@ -172,8 +193,9 @@
                                                 <tr id="row-item-detail{{ $key+1 }}" data-id="{{ $key+1 }}">
                                                     <td class="align-middle">
                                                         <input class="form-control form-control-sm" type="hidden" id="itemcode{{ $key+1 }}" name="itemcode[]" value="{{ $value->itemcode }}">
+                                                        <input class="form-control form-control-sm" type="hidden" id="itemname{{ $key+1 }}" name="itemname[]" value="{{ $value->itemname }}">
                                                         <dt>{{ $value->itemcode }}</dt>
-                                                        <dd style="width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $value->itemname }}</dd>
+                                                        <dd style="width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $value->itemcode }}</dd>
                                                     </td>
                                                     <td class="align-middle">
                                                         <input class="form-control form-control-sm" type="text" name="token_remarks[]">
@@ -194,7 +216,7 @@
                                                         <span id="price_show{{ $key+1 }}">{{ Helper::formatNumber($value->price, 'rupiah') }}</span>
                                                     </td>
                                                     <td class="align-middle">
-                                                        <input class="form-control form-control-sm" type="number" name="disc1[]" id="disc1{{ $key+1 }}" onchange="calcSum({{ $key+1 }})" value="0">
+                                                        <input class="form-control form-control-sm" type="number" name="disc1[]" id="disc1{{ $key+1 }}" onchange="calcSum({{ $key+1 }})" value="{{ $value->disc1 }}">
                                                     </td>
                                                     <td class="align-middle">
                                                         <input class="form-control form-control-sm" type="number" name="disc2[]" id="disc2{{ $key+1 }}" onchange="calcSum({{ $key+1 }})" value="0" readonly>
@@ -252,9 +274,49 @@
 </div>
 {{-- ./Modal Item --}}
 
+{{-- Modal Approval --}}
+<div class="modal fade" id="modalApproval" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="staticBackdropLabel">Approval</h5>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <input type="hidden" id="docnum" name="docnum" value="{{ ($docnum) ? $docnum : 0 }}">
+                <input class="form-control form-control-sm" type="text" name="email_approval" id="email_approval" placeholder="Email*" required>
+                <input class="form-control form-control-sm mt-2" type="password" name="password_approval" id="password_approval" placeholder="Password*" required>
+                <button class="btn btn-success btn-xs mt-2 float-right" type="button" id="btn_approval">Approve</button>
+                <button type="button" class="btn btn-xs mt-2 mr-2 btn-secondary float-right" data-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+{{-- ./Modal Approval --}}
+
 @endsection
 @section('jScript')
 <script>
+
+    var previousValues = {};
+    var approvalCode = $('#approval_user').val();
+
+    $(document).ready(function(){
+
+        $('table > #item-list > tr').each(function() { 
+            let rowIndex = $(this).data("id");
+
+            previousValues[$("#price_list"+rowIndex).attr('id')] = $("#price_list"+rowIndex).find(":selected").val();
+        });
+
+        calcGrand();
+
+        let custphone = $("#custphone").val();
+        if(custphone){
+            checkMember(custphone)
+        }
+    })
+
+    const payMethod = [];
 
     $.ajaxSetup({
         headers: {
@@ -387,6 +449,9 @@
 
     const addItem = () => {
         let docnum = $("#docnum").val();
+        let approval_user = $("#approval_user").val();
+        var discount = $("#grand_discount").val();
+        var tax = $("#grand_tax").val();
         let itemcode = $('#itemcode_modal').val();
         let itemname = $('#itemname_modal').val();
         let pricelist = "{{ $pricelist }}";
@@ -394,6 +459,8 @@
         let price = $('#price_modal_input').val();
         let qty = $('#qty_modal').val();
         var custcode = $("#custcode").find(":selected").val();
+        var custname = $("#custname").val();
+        var custphone = $("#custphone").val();
         var sales = $("#sales").data("id");
 
         var rowCount = $('#item-list tr').length;
@@ -406,9 +473,10 @@
 
         $.ajax({
             type:'POST',
-            url:"{{ url('sales/cart/store') }}",
+            url:"{{ url('sales/storeCart/') }}",
             data:{
                 docnum      : docnum,
+                approval_user : approval_user,
                 itemcode    : itemcode,
                 itemname    : itemname,
                 qty         : qty,
@@ -417,6 +485,10 @@
                 pricelist   : pricelist_modal,
                 sales       : sales,
                 custcode    : custcode,
+                custname    : custname,
+                custphone   : custphone,
+                discount    : discount,
+                tax         : tax,
                 stage       : '1'
             },
             beforeSend: function() {
@@ -430,6 +502,7 @@
                         <tr id="row-item-detail`+i+`" data-id="`+i+`">
                             <td class="align-middle">
                                 <input class="form-control form-control-sm" type="hidden" id="itemcode`+i+`" name="itemcode[]" value="`+itemcode+`">
+                                <input class="form-control form-control-sm" type="hidden" id="itemname`+i+`" name="itemname[]" value="`+itemname+`">
                                 <dt>`+itemcode+`</dt>
                                 <dd style="width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">`+itemname+`</dd>
                             </td>
@@ -469,8 +542,9 @@
 
                     if(docnum == 0){
                         $("#docnum").val(data.docnum);
-                        window.location.href = '{{ url("sales/create?cartCode=") }}'+data.docnum;
+                        window.location.href = '{{ url("sales/create?cartCode=") }}'+data.docnum+'';
                     }
+
 
                     calcSum(i)
                 }
@@ -485,10 +559,78 @@
 
     $(document).on('click', '.btn_remove', function(){
         var button_id = $(this).attr("id");
-        $('#row-item-detail'+button_id+'').remove();
+        let docnum = $("#docnum").val();
+        let itemcode = $('#itemcode'+button_id).val();
 
-        calcGrand();
+        $.ajax({
+            type:'POST',
+            url:"{{ url('sales/removeCart') }}",
+            data:{
+                docnum  : docnum,
+                itemcode: itemcode
+            },
+            beforeSend: function() {
+                doBeforeSend(true)
+            },
+            success:function(data){
+                $('#row-item-detail'+button_id+'').remove();
+                doBeforeSend(false)
+                calcGrand();
+            }
+        });
+
     });
+
+    const storeCart = (row) => {
+        let docnum = $("#docnum").val();
+        let approval_user = $("#approval_user").val();
+        let itemcode = $('#itemcode'+row).val();
+        let itemname = $('#itemname'+row).val();
+        let pricelist = $('#price_list'+row).find(":selected").val();
+        let price = $('#price'+row).val();
+        let qty = $('#qty'+row).val();
+        var custcode = $("#custcode").find(":selected").val();
+        var custname = $("#custname").val();
+        var custphone = $("#custphone").val();
+        var sales = $("#sales").data("id");
+        var subtotal = $("#subtotal"+row).val();
+        var discount = $("#grand_discount").val();
+        var tax = $("#grand_tax").val();
+        var disc1 = $("#disc1"+row).val();
+        var disc2 = $("#disc2"+row).val();
+        var disc3 = $("#disc3"+row).val();
+
+        $.ajax({
+            type:'POST',
+            url:"{{ url('sales/storeCart') }}",
+            data:{
+                docnum      : docnum,
+                approval_user : approval_user,
+                itemcode    : itemcode,
+                itemname    : itemname,
+                qty         : qty,
+                price       : price,
+                subtotal    : subtotal,
+                pricelist   : pricelist,
+                sales       : sales,
+                custcode    : custcode,
+                custname    : custname,
+                custphone   : custphone,
+                discount    : discount,
+                tax         : tax,
+                disc1       : disc1,
+                disc2       : disc2,
+                disc3       : disc3,
+                stage       : '1'
+            },
+            beforeSend: function() {
+                doBeforeSend(true)
+            },
+            success:function(data){
+                doBeforeSend(false)
+            }
+        });     
+    }
 
     const priceList = (itemcode, pricelist, index) => {
         let href = '{{ route("master.item.pricing") }}';
@@ -508,11 +650,22 @@
                 if(result.itemprice){
                     $("#price_show"+index).html(maskRupiah("", result.itemprice.price));
                     $("#price"+index).val(result.itemprice.price);
+                    
+                    if(previousValues["price_list"+index] != pricelist && approvalCode == '0'){
+                        showModalApprove(itemcode, pricelist, index)
+                    }
+
                 } else {
                     $("#price_show"+index).html(maskRupiah("", 0));
                     $("#price"+index).val(0);                    
                 }
+
+                $('#modalApproval').on('hidden.bs.modal', function (event) {
+                    closeModalApprove(itemcode, pricelist, index)
+                })
+
                 calcSum(index)
+                storeCart(index)
             },
             error: function(jqXHR, testStatus, error) {
                 popToast('error', 'E999 - Terjadi Kesalah Komunikasi Server');
@@ -527,6 +680,77 @@
         });
     }
 
+    const showModalApprove = (itemcode, pricelist, index) => {
+        $('#modalApproval').modal('show');
+
+        $('#modalApproval').on('shown.bs.modal', function () {
+            $('#btn_approval').click(function(){
+                approveCart(itemcode, pricelist, index);
+            })
+        })
+    }
+
+    const approveCart = (itemcode, pricelist, index) => {
+        let docnum = $("#docnum").val();
+        let email_approval = $("#email_approval").val();
+        let password_approval = $("#password_approval").val();
+
+        let href = '{{ route("approveCart") }}';
+        $.ajax({
+            url: href,
+            method: "POST",
+            data: {
+                docnum:  docnum,
+                email_approval:  email_approval,
+                password_approval: password_approval
+            },
+            beforeSend: function() {
+                doBeforeSend(true)
+            },
+            success: function(result) {
+                console.log(result);
+                if(result.status == "true"){
+                    $('#approval_user').val(result.approved);
+
+                    $('#modalApproval').modal('hide');
+
+                    popToast('success', 'Berhasil approve data');
+                    approvalCode = result.approved;
+                } else {
+                    priceList(itemcode, previousValues["price_list"+index], index)
+                    $('#modalApproval').modal('hide');
+
+                    popToast('error', 'Gagal approve data');
+                }
+
+                $('#modalApproval').on('hidden.bs.modal', function (event) {
+                    closeModalApprove(itemcode, pricelist, index)
+                })
+            },
+            error: function(jqXHR, testStatus, error) {
+                popToast('error', 'E999 - Terjadi Kesalah Komunikasi Server');
+
+                doBeforeSend(false)
+            },
+            complete: function() {
+                // selesai
+                doBeforeSend(false)
+            },
+            timeout: 8000,
+        });
+    }
+
+    const closeModalApprove = (itemcode, pricelist, index) => {
+        if(approvalCode == '0'){
+            $("#price_list"+index).val(previousValues["price_list"+index]);
+
+            priceList(itemcode, previousValues["price_list"+index], index)
+
+            console.log("Batal meminta approval");
+        }
+    }
+
+    // Summary subtotal per row
     const calcSum = (i) => {
         let qty = $("input#qty"+i).val();
         let price = $("input#price"+i).val();
@@ -570,8 +794,10 @@
         $("input#subtotal"+i).val(subtotal);
         $("#subtotal_show"+i).html(maskRupiah("", subtotal));
         calcGrand();
+        storeCart(i);
     }
 
+    // Summary grandtotal semua row detail
     const calcGrand = () => {
         let subGrandTotalPrice = parseInt(0);
         let grandTotalPrice = parseInt(0);
@@ -603,6 +829,7 @@
         maskRupiah("#total_view", grandTotalPrice);
     }
 
+    // Mengambil master payment method
     const paymentMethod = () => {
         let href = '{{ route("sales.paymentMethod") }}';
         $.ajax({
@@ -635,6 +862,7 @@
         })
     };
 
+    // Memilih payment
     const setPay = (e, f, g) => {
         
         $(".button-mthd").attr('style', 'padding: 25px;height: 15vh;color: #2e5781 !important;background-color: #dbdbdb17 !important; border: 1px solid #2e5781');
@@ -644,63 +872,32 @@
         let href = '{{ route("sales.paymentMethod.details") }}';
         switch (e) {
             case "Cash":
-                // $("#payment").html("");
-                // $("#payment").html(`
-                //     <div class="row">
-                //         <input type="hidden" class="form-control" id="operator" value="+">
-                //         <div class="col-sm-2 col-md-2">
-                //             <button type="button" class="btn btn-success btn-block btn-xs" id="plusOperator" onclick="setOperator('+')" style="font-size: 20px !important;">+</button>
-                //             <button type="button" class="btn btn-outline-success btn-block btn-xs" id="minOperator" onclick="setOperator('-')" style="font-size: 20px !important;">-</button>
-                //         </div>
-                //         <div class="col-sm-10 col-md-10">
-                //             <div class="row justify-content-md-center">
-                //                 <div class="col-sm-6 col-md-6">
-                //                     <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(500)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">500</button>
-                //                 </div>
-                //                 <div class="col-sm-6 col-md-6">
-                //                     <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(10000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">10.000</button>
-                //                 </div>
-                //                 <div class="col-sm-6 col-md-6">
-                //                     <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(1000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">1.000</button>
-                //                 </div>
-                //                 <div class="col-sm-6 col-md-6">
-                //                     <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(20000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">20.000</button>
-                //                 </div>
-                //                 <div class="col-sm-6 col-md-6">
-                //                     <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(2000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">2.000</button>
-                //                 </div>
-                //                 <div class="col-sm-6 col-md-6">
-                //                     <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(50000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">50.000</button>
-                //                 </div>
-                //                 <div class="col-sm-6 col-md-6">
-                //                     <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(5000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">5.000</button>
-                //                 </div>
-                //                 <div class="col-sm-6 col-md-6">
-                //                     <button type="button" class="btn btn-outline-success btn-block btn-xs" id="tax_item" onclick="setBayarTunai(100000)" style="font-size: 20px !important;height: 70px;margin-bottom: 10px; font-weight: bold;">100.000</button>
-                //                 </div>
-                //             </div>
-                //         </div>
-                //     </div>
-                // `);
-
                 let rowIndexPayment = $("#table-payments tbody tr").length;
 
-                $("#table-payments tbody").append(`
-                    <tr style="background-color: aliceblue;">
-                        <td class="align-middle" style="text-align: left;">
-                            <span>Cash</span><br>
-                            <small><b>Cash</b></small>
-                            <input type="hidden" name="payment_method[]" value="Cash">
-                            <input type="hidden" name="payment_method_details[]" value="Cash">
-                            <input type="hidden" name="payment_charge[]" value="0">
-                        </td>
-                        <td class="align-middle">0</td>
-                        <td><input class="form-control text-right" id="detail_nominal`+(rowIndexPayment+1)+`" name="detail_nominal[]" value="0" style="border:none;" onchange="paymentSum()"></td>
-                        <td class="align-middle" style="width: 4%;">
-                            <button class="btn btn-flat btn-outline bg-red btn-sm" onclick="$(this).closest('tr').remove(); paymentSum();"><i class="fas fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `);
+                if(!payMethod.includes('Cash')){
+                    $("#table-payments tbody").append(`
+                        <tr style="background-color: aliceblue;">
+                            <td class="align-middle" style="text-align: left;">
+                                <span>Cash</span><br>
+                                <small><b>Cash</b></small>
+                                <input type="hidden" name="payment_method[]" value="Cash">
+                                <input type="hidden" name="payment_method_details[]" value="Cash">
+                                <input type="hidden" name="payment_charge[]" value="0">
+                            </td>
+                            <td class="align-middle">0</td>
+                            <td><input class="form-control text-right detail_nominal" id="detail_nominal" name="detail_nominal[]" value="0" style="border:none;" onchange="paymentSum()"></td>
+                            <td class="align-middle" style="width: 4%;">
+                                <button class="btn btn-flat btn-outline bg-red btn-sm" onclick="$(this).closest('tr').remove(); paymentSum(); removePayment('Cash')"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `);
+                    payMethod.push("Cash");
+
+                    $("#table-payments tbody tr").each(function(index) {
+                        $(this).find('input.detail_nominal').attr('id', 'detail_nominal' + index); // Update nomor urut
+                    });
+                }
+
 
                 break;
             case "CreditCard":
@@ -953,7 +1150,7 @@
         }
 
         $("#pMethod").val(e);
-    };   
+    };
 
     const setOperator = (param) => {
         if(param == '+'){
@@ -965,47 +1162,16 @@
             $("#plusOperator").attr("class", "btn btn-outline-success btn-block btn-xs");
             $("#minOperator").attr("class", "btn btn-success btn-block btn-xs");
         }
-    };    
-
-    const setBayarTunai = (nominal) => {
-        let total = parseInt($("#total").val());
-        let operator = $("#operator").val();
-        let nominalNow = $("#setCashBack").val().replace(/(\d)[\s.]+(?=\d)/g, '$1');
-        let bayar = 0;
-
-        if(operator == "+"){
-            if(nominalNow == ""){
-                bayar = 0 + parseInt(nominal)
-            } else {
-                bayar = parseInt(nominalNow) + parseInt(nominal)
-            }
-        } else {
-            if(nominalNow == ""){
-                bayar = 0 - parseInt(nominal)
-            } else {
-                bayar = parseInt(nominalNow) - parseInt(nominal)
-            }            
-        }
-
-        $("#setCashBack").val(formatNumber(bayar));
-        let cashBack = maskRupiah("", parseInt(total) - parseInt(bayar));
-        $("#cashBack").val(cashBack);
-        if (bayar < total) {
-            $("#setCashBack").addClass("is-invalid");
-            $('button.swal2-confirm').attr("disabled", true);
-            $('button.swal2-deny').attr("disabled", true);
-        } else {
-            $("#setCashBack").removeClass("is-invalid");
-            $('button.swal2-confirm').attr("disabled", false);
-            $('button.swal2-deny').attr("disabled", false);
-        }
-    };    
+    };      
     
-    // calculation cashback before print
+    // Menghitung kembalian
     const setCashBack = () => {
-        let pay = parseInt($("#setCashBack").unmask().val());
-        let total = parseInt($("#total").val());
+        let pay = parseInt($("#dibayar").val());
+        let total = parseInt($("#grandtotal").val());
+
         let cashBack = maskRupiah("", pay - total);
+
+        $("#kembalian").val(pay - total);
         $("#cashBack").val(cashBack);
         if (pay < total) {
             $("#setCashBack").addClass("is-invalid");
@@ -1023,47 +1189,29 @@
         total = total - parseInt($("#charge").val());
         let rowIndexPayment = $("#table-payments tbody tr").length;
 
-        $("#table-payments tbody").append(`
-            <tr style="background-color: aliceblue;">
-                <td class="align-middle" style="text-align: left;">
-                    <span>`+method+`</span><br>
-                    <small><b>`+methodDetails+`</b></small>
-                    <input type="hidden" name="payment_method[]" value="`+method+`">
-                    <input type="hidden" name="payment_method_details[]" value="`+methodDetails+`">
-                    <input type="hidden" name="payment_charge[]" value="`+charge+`">
-                </td>
-                <td class="align-middle">`+charge+`</td>
-                <td><input class="form-control text-right" id="detail_nominal`+(rowIndexPayment+1)+`" name="detail_nominal[]" value="0" style="border:none;" onchange="paymentSum()"></td>
-                <td class="align-middle" style="width: 4%;">
-                    <button class="btn btn-flat btn-outline bg-red btn-sm" onclick="$(this).closest('tr').remove(); paymentSum();"><i class="fas fa-trash"></i></button>
-                </td>
-            </tr>
-        `);
-
-        // let paymentCharge =  total * parseFloat(charge)/100;
-        // var newTotal = total + paymentCharge;
-        // $("#charge").val(parseInt(paymentCharge));
-        // $("#total").val(newTotal); 
-
-        // if(method == "TransferCash"){
-        //     let cash_ammount = parseInt($("#cash_amount").val());
-        //     if(cash_ammount == 0 || cash_ammount == ""){
-        //         alert("Please fill cash amount first");
-        //     } else {
-        //         let transfer_ammount = newTotal - cash_ammount;
-    
-        //         $("#transfer_ammount").val(transfer_ammount);
-        //         $("#setCashBack").val(formatNumber(cash_ammount + transfer_ammount));
-        //     }
-        // } else {
-        //     $("#setCashBack").val(formatNumber(newTotal));
-        // }
-        // maskRupiah("#total_view", newTotal);
-        // maskRupiah("#total_penjualan", newTotal);
-        
-        // $("#pMethodDetails").val(methodDetails);
-        // $(".btn-payment").removeClass("btn-dark");
-        // $("#"+buttonId).addClass("btn-dark");
+        if(!payMethod.includes(method+' '+methodDetails)){
+            $("#table-payments tbody").append(`
+                <tr style="background-color: aliceblue;">
+                    <td class="align-middle" style="text-align: left;">
+                        <span>`+method+`</span><br>
+                        <small><b>`+methodDetails+`</b></small>
+                        <input type="hidden" name="payment_method[]" value="`+method+`">
+                        <input type="hidden" name="payment_method_details[]" value="`+methodDetails+`">
+                        <input type="hidden" name="payment_charge[]" value="`+charge+`">
+                    </td>
+                    <td class="align-middle">`+charge+`</td>
+                    <td><input class="form-control text-right detail_nominal" id="detail_nominal" name="detail_nominal[]" value="0" style="border:none;" onchange="paymentSum()"></td>
+                    <td class="align-middle" style="width: 4%;">
+                        <button type="button" class="btn btn-flat btn-outline bg-red btn-sm" onclick="$(this).closest('tr').remove(); paymentSum(); removePayment('`+method+` `+methodDetails+`');"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `);
+            payMethod.push(method+' '+methodDetails)
+            
+            $("#table-payments tbody tr").each(function(index) {
+                $(this).find('input.detail_nominal').attr('id', 'detail_nominal' + index); // Update nomor urut
+            });
+        }
         setCashBack();
     }
 
@@ -1071,214 +1219,283 @@
         let rowIndexPayment = $("#table-payments tbody tr").length;
         let totalPayment = 0;
 
-        for (let index = 1; index <= rowIndexPayment; index++) {
+        for (let index = 0; index < rowIndexPayment; index++) {
             let pay = $("#detail_nominal"+index).val();
 
             totalPayment = parseFloat(totalPayment) + parseFloat(pay);
         }
         console.log(totalPayment);
 
-        $("#setCashBack").val(formatNumber(totalPayment));
+        $("#dibayar").val(totalPayment);
+        $("#setCashBack").val(maskRupiah("", totalPayment));
 
         setCashBack();
     }
 
+    const removePayment = (payM) => {
+        console.log(payM)
+        // Find the index of payM
+        const index = payMethod.indexOf(payM);
+
+        // If payM is found (index != -1), remove it from the array
+        if (index !== -1) {
+            payMethod.splice(index, 1); // Removes 1 element at the found index
+        }
+
+        $("#table-payments tbody tr").each(function(index) {
+            $(this).find('input.detail_nominal').attr('id', 'detail_nominal' + index); // Update nomor urut
+        });
+
+        paymentSum()
+    }
+
+    const checkMember = (phone) => {
+        let href = "/keanggotaan/check";
+        var content = document.getElementsByClassName("content_collapse");
+        $.ajax({
+            url: href,
+            method: "POST",
+            data: {
+                'phone' : phone
+            },
+            beforeSend: function() {
+                doBeforeSend(true);
+                content[0].style.display = "none";
+            },
+            success: function(res) {
+                console.log(res);
+
+                if(res.status = 'success'){
+
+                    content[0].style.display = "block";
+
+                    let htmlbadge = '';
+                    if(res.data.status == 'active'){
+                        htmlbadge = `<span class="badge badge-success">Active</span>`;
+                    } else {
+                        htmlbadge = `<span class="badge badge-danger">Non Active</span>`;
+                    }
+
+                    $("#full_name_member").html(res.data.full_name);
+                    $("#point_member").html(res.data.posisi_point+" point");
+                    $("#member_status").html(htmlbadge);
+
+                } else {
+                    content[0].style.display = "none";
+                }
+            },
+            error: function(jqXHR, testStatus, error) {
+                popToast('error', 'E999 - Terjadi Kesalah Komunikasi Server');
+                doBeforeSend(false);
+            },
+
+            complete: function() {
+                // selesai
+                doBeforeSend(false);
+            },
+            timeout: 8000,
+        });        
+    }
+
+
     const saveData = (action) => {
         paymentMethod()
-        let href = "/sales/store/" + action;
         let formData = $("form").serialize();
 
         swal.fire({
-                title: action == "simpan" ? "Apakah Ingin Menyimpan" : "Pilih Pembayaran",
-                icon: "question",
-                width: 1000,
-                showDenyButton: true,
-                showCancelButton: true,
-                confirmButtonColor: "#20C997",
-                denyButtonColor: "#007BFF",
-                cancelButtonColor: "#DC3545",
-                confirmButtonText: action == "simpan" ? "Simpan" : "Simpan & Cetak",
-                denyButtonText: action == "simpan" ? "Batal" : "Simpan",
-                cancelButtonText: "Batal",
-                html: `
-                <div class="row py-2" style="background-color: #2e5781; border-radius: 6px;">
-                    <div class="col-sm-4 col-4">
-                        <div class="description-block border-right">
-                            <span class="description-text text-white">TOTAL PENJUALAN</span>
-                            <p class="text-secondary"></p>
-                            <input type="hidden" name="grandtotal" id="grandtotal" value="0">
-                            <input type="hidden" name="charge" id="charge" value="0">
-                            <h1 class="description-header text-white" id="total_penjualan">${maskRupiah("", $("#total").val())}</h1>
-                        </div>
-                        <!-- /.description-block -->
+            title: action == "simpan" ? "Apakah Ingin Menyimpan" : "Pilih Pembayaran",
+            icon: "question",
+            width: 1000,
+            showDenyButton: true,
+            showCancelButton: true,
+            confirmButtonColor: "#20C997",
+            denyButtonColor: "#007BFF",
+            cancelButtonColor: "#DC3545",
+            confirmButtonText: action == "simpan" ? "Simpan" : "Simpan & Cetak",
+            denyButtonText: action == "simpan" ? "Batal" : "Simpan",
+            cancelButtonText: "Batal",
+            html: `
+            <div class="row py-2" style="background-color: #2e5781; border-radius: 6px;">
+                <div class="col-sm-4 col-4">
+                    <div class="description-block border-right">
+                        <span class="description-text text-white">TOTAL PENJUALAN</span>
+                        <p class="text-secondary"></p>
+                        <input type="hidden" name="grandtotal" id="grandtotal" value="${$("#total").val()}">
+                        <input type="hidden" name="charge" id="charge" value="0">
+                        <h1 class="description-header text-white" id="total_penjualan">${maskRupiah("", $("#total").val())}</h1>
                     </div>
-                    <!-- /.col -->
-                    <div class="col-sm-4 col-4">
-                        <div class="description-block border-right">
-                            <span class="description-text text-white">TOTAL DIBAYAR</span>
-                            <p class="text-secondary"></p>
-                            <input type="text" class="form-control form-control uang text-white" oninput="setCashBack()" placeholder="Bayar" id="setCashBack" name="setCashBack" style="background-color: transparent; font-size: 17px; font-weight: bold; text-align: center; margin-top: -10px; border: none;" autofocus required>
-                        </div>
-                        <!-- /.description-block -->
-                    </div>
-                    <!-- /.col --> 
-                    <div class="col-sm-4 col-4">
-                        <div class="description-block">
-                            <span class="description-text text-white">TOTAL KEMBALIAN</span>
-                            <p class="text-secondary"></p>
-                            <input type="text" class="form-control form-control text-white" placeholder="Kembali" id="cashBack" style="background-color: transparent; font-size: 17px; font-weight: bold; text-align: center; margin-top: -10px; border: none;" readonly>
-                        </div>
-                        <!-- /.description-block -->
-                    </div>
+                    <!-- /.description-block -->
                 </div>
-                <div class="row py-2">
-                    <div class="col-md-12">
-                        <form id="records-table">
-                            <table class="table table-borderless table-sm fs-9" id="table-payments" style="font-size: 15px;">
-                                <tbody>
-                                </tbody>
-                            </table>
-                        </form>
+                <!-- /.col -->
+                <div class="col-sm-4 col-4">
+                    <div class="description-block border-right">
+                        <span class="description-text text-white">TOTAL DIBAYAR</span>
+                        <p class="text-secondary"></p>
+                        <input type="hidden" class="form-control form-control uang text-white" oninput="setCashBack()" placeholder="Bayar" id="dibayar" name="dibayar" autofocus required>
+                        <input type="text" class="form-control form-control uang text-white" placeholder="Bayar" id="setCashBack" name="setCashBack" style="background-color: transparent; font-size: 17px; font-weight: bold; text-align: center; margin-top: -10px; border: none;" autofocus required>
                     </div>
+                    <!-- /.description-block -->
                 </div>
-                <div class="row py-2">
-                    <div class="col-sm-3 scrollYMenu" id="payment_method" style="background-color: #c5c5c521; padding: 12px; height: 50vh"></div>
-                    <div class="col-sm-9 scrollYMenu" id="payment" style="padding: 12px; height: 50vh"></div>
+                <!-- /.col --> 
+                <div class="col-sm-4 col-4">
+                    <div class="description-block">
+                        <span class="description-text text-white">TOTAL KEMBALIAN</span>
+                        <p class="text-secondary"></p>
+                        <input type="hidden" class="form-control form-control text-white" placeholder="Kembali" id="kembalian" readonly>
+                        <input type="text" class="form-control form-control text-white" placeholder="Kembali" id="cashBack" style="background-color: transparent; font-size: 17px; font-weight: bold; text-align: center; margin-top: -10px; border: none;" readonly>
+                    </div>
+                    <!-- /.description-block -->
                 </div>
-                <input type="hidden" class="form-control form-control" id="pMethod" name="pMethod" readonly>
-                <input type="hidden" class="form-control form-control" id="pMethodDetails" name="pMethodDetails" readonly>`,
-            })
-            .then((resultSwal1) => {
-                let pay = $("#setCashBack").unmask().val();
-                let total = $("#total").unmask().val();
-                let grandtotal = $("#grandtotal").unmask().val();
-                let charge = $("#charge").unmask().val();
-                let cashBack = pay - total;
-                let pMethod = $("#pMethod").val();
-                let pMethodDetails = $("#pMethodDetails").val();
-                let paymentDetails = $("#records-table").serialize();
-                formData = formData + '&grandtotal='+ total;
-                formData = formData + '&charge='+ charge;
-                if(pMethod == "TransferCash"){
-                    let cash = $("#cash_amount").unmask().val();
-                    let nonCash = $("#transfer_ammount").unmask().val();
-                    
-                    formData = formData + '&payCash='+ cash;
-                    formData = formData + '&payNonCash='+ nonCash;
-                }else if(pMethod == "Cash"){
-                    formData = formData + '&payCash='+ pay;
-                    formData = formData + '&payNonCash=0';
-                } else {
-                    formData = formData + '&payCash=0';
-                    formData = formData + '&payNonCash='+ pay;
-                }
-                formData = formData + '&cashBack='+ cashBack;
-                formData = formData + '&'+ paymentDetails;
+            </div>
+            <div class="row py-2">
+                <div class="col-md-12">
+                    <form id="records-table">
+                        <table class="table table-borderless table-sm fs-9" id="table-payments" style="font-size: 15px;">
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </form>
+                </div>
+            </div>
+            <div class="row py-2">
+                <div class="col-sm-3 scrollYMenu" id="payment_method" style="background-color: #c5c5c521; padding: 12px; height: 50vh"></div>
+                <div class="col-sm-9 scrollYMenu" id="payment" style="padding: 12px; height: 50vh"></div>
+            </div>
+            <input type="hidden" class="form-control form-control" id="pMethod" name="pMethod" readonly>
+            <input type="hidden" class="form-control form-control" id="pMethodDetails" name="pMethodDetails" readonly>`,
+        }).then((resultSwal1) => {
+            let pay = $("#dibayar").val();
+            let total = $("#grandtotal").val();
+            let grandtotal = $("#grandtotal").unmask().val();
+            let charge = $("#charge").unmask().val();
+            let cashBack = $("#kembalian").val();
+            let pMethod = $("#pMethod").val();
+            let pMethodDetails = $("#pMethodDetails").val();
+            let paymentDetails = $("#records-table").serialize();
+            formData = formData + '&grandtotal='+ total;
+            formData = formData + '&charge='+ charge;
+            if(pMethod == "TransferCash"){
+                let cash = $("#cash_amount").unmask().val();
+                let nonCash = $("#transfer_ammount").unmask().val();
+                
+                formData = formData + '&payCash='+ cash;
+                formData = formData + '&payNonCash='+ nonCash;
+            }else if(pMethod == "Cash"){
+                formData = formData + '&payCash='+ pay;
+                formData = formData + '&payNonCash=0';
+            } else {
+                formData = formData + '&payCash=0';
+                formData = formData + '&payNonCash='+ pay;
+            }
+            formData = formData + '&cashBack='+ cashBack;
+            formData = formData + '&'+ paymentDetails;
 
-                if (resultSwal1.isConfirmed && pay >= total) {
-                    $.ajax({
-                        url: href,
-                        method: "POST",
-                        data: formData,
-                        beforeSend: function() {
-                            doBeforeSend(true)
-                        },
-                        success: function(res) {
-                            if (res.status == "success") {
-                                if (action == "bayar") {
-                                    // forward ke cetak
-                                    let pay = $("#setCashBack").unmask().val();
-                                    let total = $("#total").unmask().val();
-                                    let cashBack = pay - total;
-                                    let pMethod = $("#pMethod").val();
-                                    let win = window.open(
-                                        "{{ url('') }}/sales/print/" + res.code_sales
-                                    );
-                                    let timer = setInterval(function() {
-                                        if (win.closed) {
-                                            clearInterval(timer);
-                                            window.location = "{{ url('/sales/create') }}";
-                                        }
-                                    }, 500);
-                                } else {
-                                    //  forward ke new sales
+            // Jika isConfirm(Bayar)
+            if (resultSwal1.isConfirmed && pay >= total) {
+                let href = "/sales/store/" + action;
+                $.ajax({
+                    url: href,
+                    method: "POST",
+                    data: formData,
+                    beforeSend: function() {
+                        doBeforeSend(true)
+                    },
+                    success: function(res) {
+                        if (res.status == "success") {
+                            if (action == "bayar") {
+                                // forward ke cetak
+                                let pay = $("#setCashBack").unmask().val();
+                                let total = $("#total").unmask().val();
+                                let cashBack = pay - total;
+                                let pMethod = $("#pMethod").val();
+                                let win = window.open(
+                                    "{{ url('') }}/sales/print/" + res.code_sales
+                                );
+                                let timer = setInterval(function() {
+                                    if (win.closed) {
+                                        clearInterval(timer);
+                                        window.location = "{{ url('/sales/create') }}";
+                                    }
+                                }, 500);
+                            } else {
+                                //  forward ke new sales
+                                window.location = "{{ url('/sales/create') }}";
+                            }
+                        } else {
+                            if (res.code == "E017") {} else {
+                                Swal.fire(
+                                    res.status == "success" ? "Berhasil !" : "Gagal !",
+                                    res.message,
+                                    res.status
+                                );
+                            }
+                        }
+                    },
+                    error: function(jqXHR, testStatus, error) {
+                        popToast('error', 'E999 - Terjadi Kesalah Komunikasi Server');
+                        doBeforeSend(false);
+                    },
+
+                    complete: function() {
+                        // selesai
+                        doBeforeSend(false);
+                    },
+                    timeout: 8000,
+                });
+            }
+
+            // Jika isDenied(Simpan)
+            if (resultSwal1.isDenied && pay >= total) {
+                let href = "/sales/store/simpan";
+                $.ajax({
+                    url: href,
+                    method: "POST",
+                    data: formData,
+                    beforeSend: function() {
+                        doBeforeSend(true)
+                    },
+                    success: function(res) {
+                        if (res.status == "success") {
+                            swal.fire({
+                                title: res.status == "success" ? "Berhasil !" : "Gagal !",
+                                text: res.message,
+                                icon: res.status,
+                                confirmButtonColor: "#3085d6",
+                                cancelButtonColor: "#d33",
+                                confirmButtonText: "Ok !",
+                            })
+                            .then((resultSwal2) => {
+                                if(resultSwal2.isConfirmed) {
                                     window.location = "{{ url('/sales/create') }}";
                                 }
-                            } else {
-                                if (res.code == "E017") {} else {
-                                    Swal.fire(
-                                        res.status == "success" ? "Berhasil !" : "Gagal !",
-                                        res.message,
-                                        res.status
-                                    );
-                                }
+                            });
+                        } else {
+                            if (res.code == "E017") {} else {
+                                Swal.fire(
+                                    res.status == "success" ? "Berhasil !" :
+                                    "Gagal !",
+                                    res.message,
+                                    res.status
+                                );
                             }
-                        },
-                        error: function(jqXHR, testStatus, error) {
-                            popToast('error', 'E999 - Terjadi Kesalah Komunikasi Server');
-                            doBeforeSend(false);
-                        },
+                        }
+                    },
+                    error: function(jqXHR, testStatus, error) {
+                        popToast('error', 'E999 - Terjadi Kesalah Komunikasi Server');
+                        doBeforeSend(false)
+                    },
+                    complete: function() {
+                        doBeforeSend(false)
+                    },
+                    timeout: 8000,
+                });
+            }
 
-                        complete: function() {
-                            // selesai
-                            doBeforeSend(false);
-                        },
-                        timeout: 8000,
-                    });
-                }
-                if (resultSwal1.isDenied && pay >= total) {
-                    if(action == "bayar"){
-                        $.ajax({
-                            url: href,
-                            method: "POST",
-                            data: formData,
-                            beforeSend: function() {
-                                doBeforeSend(true)
-                            },
-                            success: function(res) {
-                                if (res.status == "success") {
-                                    swal.fire({
-                                            title: res.status == "success" ? "Berhasil !" : "Gagal !",
-                                            text: res.message,
-                                            icon: res.status,
-                                            confirmButtonColor: "#3085d6",
-                                            cancelButtonColor: "#d33",
-                                            confirmButtonText: "Ok !",
-                                        })
-                                        .then((resultSwal2) => {
-                                            if(resultSwal2.isConfirmed) {
-                                                window.location = "{{ url('/sales/create') }}";
-                                            }
-                                        });
-                                } else {
-                                    if (res.code == "E017") {} else {
-                                        Swal.fire(
-                                            res.status == "success" ? "Berhasil !" :
-                                            "Gagal !",
-                                            res.message,
-                                            res.status
-                                        );
-                                    }
-                                }
-                            },
-                            error: function(jqXHR, testStatus, error) {
-                                popToast('error', 'E999 - Terjadi Kesalah Komunikasi Server');
-                                doBeforeSend(false)
-                            },
-
-                            complete: function() {
-                                // selesai
-                                doBeforeSend(false)
-                            },
-                            timeout: 8000,
-                        });
-                    }
-                }
-                
-                if((resultSwal1.isConfirmed && pay < total) || (resultSwal1.isDenied && pay < total)) {
-                    Swal.fire("Gagal !", "Uang bayar kurang", "error");
-                }
-            });
+            // Jika uang bayar kurang
+            if((resultSwal1.isConfirmed && pay < total) || (resultSwal1.isDenied && pay < total)) {
+                Swal.fire("Gagal !", "Uang bayar kurang", "error");
+            }
+        });
     };
 </script>
 @endsection

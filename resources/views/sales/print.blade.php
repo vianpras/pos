@@ -4,15 +4,16 @@
     <title>{{$sales->code}}</title>
     <style media="print">
         * {
-            font-size: 9px;
+            font-size: 13px;
             font-family: Consolas, Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace, serif;
         }
 
         body {
-            align-content: center;
+            align-content: flex-start;
+            /* align-content: center;
             justify-content: center;
             justify-items: flex-start;
-            display: grid;
+            display: grid; */
         }
 
         .eightpx {
@@ -38,12 +39,12 @@
             margin-right: 53mm;
             border-top: 1px dashed;
         }
-
+        
         @page {
-            size: 58mm {{$count <=5 ? 150 - (5 - $count) * 6: 150 + ($count - 5) * 6}}mm;
-            margin: 3mm;
+            size: 58mm 297mm;
+            margin: 1;
         }
-
+        
         @media print {
 
             .hidden-print,
@@ -53,14 +54,19 @@
         }
 
         table {
-            width: 50mm;
+            /* width: 50mm; */
             border-collapse: collapse;
             border: 0px
         }
 
         hr {
             margin: 0;
-            border-top: 1px dashed;
+            border-top: 1px solid;
+        }
+
+        table tr#table-info td {
+            text-align: left;
+            vertical-align: top;
         }
     </style>
 </head>
@@ -74,6 +80,55 @@
         <table>
             <tbody>
                 <tr>
+                    <td colspan="6" align="center">
+                        <b>{{ ($company) ? $company->name : "" }}</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="6" align="center">
+                        <b>{!! ($company) ? $company->address1 : "" !!}</b>
+                        <b>{!! ($company) ? $company->mobile : "" !!}</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="6"><hr></td>
+                </tr>
+                <tr id="table-info">
+                    <td>Kode</td>
+                    <td>:</td>
+                    <td>{!! $sales->customer !!}</td>
+                    <td>No</td>
+                    <td>:</td>
+                    <td>{!! $sales->code !!}</td>
+                </tr>
+                <tr id="table-info">
+                    <td colspan="3">{!! ($sales->customer_detail) ? $sales->customer_detail : $sales->cardname !!}</td>
+                    <td>Tgl</td>
+                    <td>:</td>
+                    <td>{!! date('d/M/Y', strtotime($sales->date_order)) !!}</td>
+                </tr>
+                <tr id="table-info">
+                    <td colspan="3"></td>
+                    <td>Jam</td>
+                    <td>:</td>
+                    <td>{!! date('H:i', strtotime($sales->created_at)) !!}</td>
+                </tr>
+                <tr id="table-info">
+                    <td>Sales</td>
+                    <td>:</td>
+                    <td colspan="4"></td>
+                </tr>
+                <tr id="table-info">
+                    <td>Kasir</td>
+                    <td>:</td>
+                    <td colspan="4">{{ (Auth::user()->name)=='administrator'? 'admin' : Auth::user()->full_name }}</td>
+                </tr>
+                <tr id="table-info">
+                    <td>Checker</td>
+                    <td>:</td>
+                    <td colspan="4"></td>
+                </tr>
+                {{-- <tr>
                     <td colspan="3" align="center">
                         <img src="{{ asset('dist/img/AdminLTELogo.png') }}" height="50px"/>
                     </td>
@@ -134,41 +189,30 @@
                     </td>
                     <td>:</td>
                     <td>
-                        {{-- {{ $sales->pMethod.' '.(($sales->pMethodDetail) ? $sales->pMethodDetail : "") }} --}}
                     </td>
-                </tr>
-
+                </tr> --}}
             </tbody>
         </table>
         <table>
-            {{-- <thead>
-                <tr>
-                    <td colspan="4">
-                        <hr>
-                        <hr>
-                    </td>
-                </tr>
-                <tr>
-                    <th class="eightpx" style="width:45%;" align="left">Item</th>
-                    <th class="eightpx" style="width:5%;" align="center">Qty</th>
-                    <th class="eightpx" style="width:20%;" align="center">Harga</th>
-                    <th class="eightpx" style="width:30%;" align="center">Total</th>
-                </tr>
-            </thead> --}}
             <tbody>
                 <tr>
-                    <td colspan='4'>
-                        <hr>
+                    <td colspan='6'>
                         <hr>
                     </td>
                 </tr>
 
                 @foreach ($sales_details as $sales_detail)
                 <tr style="">
-                    <td class="eightpx" style="width:45%; padding-bottom: 2mm; padding-right: 1mm">
-                        {{$sales_detail->item_name}}
+                    <td colspan="6" style="vertical-align: top;">
+                        {{ $sales_detail->itemcode_short }}
                     </td>
-                    <td class="eightpx" style="width:5%; padding-bottom: 2mm; padding-right: 1mm" align="center">
+                </tr>
+                <tr>
+                    <td colspan="6" style="vertical-align: top;">
+                        {{-- <p style="white-space: nowrap; text-overflow: clip; overflow: hidden; width: 120px;">{{ $sales_detail->item_name }}</p> --}}
+                        <p>{{ $sales_detail->item_name }}</p>
+                    </td>
+                    {{-- <td class="eightpx" style="width:5%; padding-bottom: 2mm; padding-right: 1mm" align="center">
                         {{Helper::formatNumber($sales_detail->quantity,'')}}
                     </td>
                     <td class="eightpx" style="width:20%; padding-bottom: 2mm; padding-right: 1mm" align="right">
@@ -176,60 +220,40 @@
                     </td>
                     <td class="eightpx" style="width:30%; padding-bottom: 2mm; padding-right: 1mm" align="right">
                         {{Helper::formatNumber($sales_detail->sub_total,'norp')}}
-                    </td>
-                </tr style="padding-bottom: 2mm">
+                    </td> --}}
+                </tr>
+                <tr>
+                    <td colspan="1" align="center" width="60">{{ Helper::formatNumber($sales_detail->quantity,'') }}</td>
+                    <td colspan="2" style="min-width: 100px">{{ Helper::formatNumber($sales_detail->sell_price,'rupiah') }}</td>
+                    <td colspan="3" style="min-width: 100px">{{ Helper::formatNumber($sales_detail->sub_total,'rupiah') }}</td>
+                </tr>
                 @endforeach
                 <tr>
-                    <td colspan='4'>
-                        <hr>
+                    <td colspan='6'>
                         <hr>
                     </td>
                 </tr>
                 <tr>
-                    <td colspan='2' align="right" class="ninepx">
-                        Jumlah Total :
+                    <td colspan='2' align="right">
+                        Total :
                     </td>
-                    <td colspan='2' class="ninepx" style='text-align:right; '>
+                    <td colspan='2' style='text-align:right; '>
                         {{Helper::formatNumber($sales->sub_total,'rupiah')}}
                     </td>
                 </tr>
                 <tr>
-                    <td colspan='2' align="right" class="ninepx">
-                        Diskon :
-                    </td>
-                    <td colspan='2' class="ninepx" style='text-align:right;'>
-                        {{Helper::formatNumber($discount,'rupiah')}}
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan='2' align="right" class="ninepx">
-                        Pajak :
-                    </td>
-                    <td colspan='2' class="ninepx" style='text-align:right;'>
-                        {{Helper::formatNumber($tax,'rupiah')}}
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan='2' align="right" class="ninepx">
-                        Grand Total :
-                    </td>
-                    <td colspan='2' class="ninepx" style='text-align:right;'>
-                        {{Helper::formatNumber($sales->total,'rupiah')}}
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan='2' align="right" class="ninepx">
+                    <td colspan='2' align="right">
                         Bayar :
                     </td>
-                    <td colspan='2' class="ninepx" style='text-align:right;'>
-                        {{  Helper::formatNumber($sales->payCash+$sales->payNonCash,'rupiah') }}</br>
+                    <td colspan='2' style='text-align:right;'>
+                        {{  Helper::formatNumber($sales->payment,'rupiah') }}</br>
                     </td>
                 </tr>
                 <tr>
-                    <td colspan='2' align="right" class="ninepx">
+                    <td colspan='2' align="right">
                         Kembali :
                     </td>
-                    <td colspan='2' class="ninepx" style='text-align:right;'>
+                    <td colspan='2' style='text-align:right;'>
                         {{  Helper::formatNumber($sales->cashBack,'rupiah') }}</br>
                     </td>
                 </tr>
@@ -244,13 +268,13 @@
                     {{-- <td colspan="5">{{Helper::setDate($sales->date_order,'fullDateId')}}</td> --}}
                 </tr>
                 <tr>
-                    <td colspan="5" style="">{{ $configuration->print_footer1}}</td>
+                    <td colspan="5" style="">{{ ($configuration) ? $configuration->print_footer1 : ""}}</td>
                 </tr>
                 <tr>
-                    <td colspan="5" style="">{!! $configuration->print_footer2!!}</td>
+                    <td colspan="5" style="">{!! ($configuration) ? $configuration->print_footer2 : "" !!}</td>
                 </tr>
                 <tr>
-                    <td colspan="5" style="">{!! $configuration->print_footer3!!}</td>
+                    <td colspan="5" style="">{!! ($configuration) ? $configuration->print_footer3 : "" !!}</td>
                 </tr>
             </tfoot>
 

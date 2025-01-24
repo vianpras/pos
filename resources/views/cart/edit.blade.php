@@ -1,6 +1,15 @@
 @extends('layouts.app')
 
 @section('content')
+<style>
+    .select2-container{
+        width: 100% !important;
+    }
+
+    span.select2-selection{
+        height: 2.3rem !important;
+    }
+</style>
 <div class="content-wrapper">
     <section class="content">
         <div class="row">
@@ -27,12 +36,13 @@
                                 <input type="hidden" id="docnum" name="docnum" value="{{ ($cart) ? $cart->docnum : 0 }}">
                                 <div class="form-group">
                                     <label>Kode Item<sup class="text-danger">*</sup></label>
-                                    <div class="input-group">
+                                    <div class="input-group" style="margin-bottom: 1rem;">
                                         <input type="text" class="form-control" id="kode-item" name="kode-item">
                                         <span class="input-group-append">
                                           <button type="button" class="btn btn-info btn-flat" onclick="getItem()"><i class="fa fa-fw fa-search"></i></button>
                                         </span>
                                     </div>
+                                    <div id="codeList">
                                 </div>
                                 <div class="form-group">
                                     <label>Deskripsi</label>
@@ -42,14 +52,20 @@
                                     <label>Sales<sup class="text-danger">*</sup></label>
                                     <input type="text" class="form-control" id="sales" name="sales" value="{{ Auth::user()->full_name }}" data-id ="{{ Auth::user()->id }}" readonly>
                                 </div>
-                                <div class="form-group">
-                                    <label>Business Partner<sup class="text-danger">*</sup></label>
-                                    <select class="form-control form-control-sm select2" name="custcode" id="custcode">
-                                        <option value="" disabled selected hidden>Choose</option>
-                                        @foreach($customer AS $cust)
-                                            <option value="{{ $cust->cardcode }}" {{ (($cart) ? (($cart->bussiness_partner == $cust->cardcode) ? "selected" : "") : "") }}>{{ (($cust->phoneCode) ? $cust->phoneCode : '0000').' | '.$cust->cardname }}</option>
-                                        @endforeach
-                                    </select>
+                                <div class="row">
+                                    <div class="form-group col-sm-6">
+                                        <label>Business Partner<sup class="text-danger">*</sup></label>
+                                        <select class="form-control form-control-sm select2" name="custcode" id="custcode">
+                                            <option value="" disabled selected hidden>Choose</option>
+                                            @foreach($customer AS $cust)
+                                                <option value="{{ $cust->cardcode }}" {{ (($cart) ? (($cart->bussiness_partner == $cust->cardcode) ? "selected" : "") : "") }}>{{ (($cust->phoneCode) ? $cust->phoneCode : '0000').' | '.$cust->cardname }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="form-group col-sm-6">
+                                        <label>Business Partner Detail</label>
+                                        <input type="text" class="form-control" id="custname" name="custname" value="{{ (($cart) ? $cart->bussiness_partner_detail : "") }}" placeholder="Bussiness partner detail">
+                                    </div>
                                 </div>
                             </section>
                             <section class="col-xs-6 col-sm-6 col-md-6">
@@ -139,6 +155,43 @@
         },
     });
 
+    var custname = $("#custname").val();
+
+    $("#kode-item").keyup( function(){
+        let input = $(this).val();
+        $.ajax({
+            url: '{{ url("sales/cart/autocomplete") }}',
+            type: 'GET',
+            dataType: "json",
+            data: {
+                search: input
+            },
+            success: function( data ) {
+                console.log(data);
+                if(input != ""){
+                    $('#codeList').fadeIn();  
+                    $('#codeList').html(data);
+                } else {
+                    $('#codeList').fadeOut();
+
+                    $("#deskripsi").val("");
+                    $("#qty").val(0);
+                    $("#price").val(0);
+                    $("#price_show").val(maskRupiah("", 0));
+                    $("#total").val(0);
+                    $("#total_show").val(maskRupiah("", 0));
+                    $("#pricelist").select2().val("").trigger("change");
+                }
+            }
+        });
+    });
+
+    $(document).on('click', '#itemcode_list', function(){  
+        $('#kode-item').val($(this).text()); 
+        $('#codeList').fadeOut();  
+        getItem()
+    });
+
     const html5QrCode = new Html5Qrcode("reader");
     const qrCodeSuccessCallback = (decodedText, decodedResult) => {
         document.getElementById('result').innerHTML =  `
@@ -189,7 +242,6 @@
                     doBeforeSend(true)
                 },
                 success:function(data){
-                    console.log(data)
                     if(data.status == 'success'){
                         $("#deskripsi").val(data.data.itemname);
 
@@ -207,6 +259,34 @@
         }
     }  
     
+    const setBusinessPartner = (cardcode) => {
+        let href = '{{ route("master.customer.bycode") }}';
+        $.ajax({
+            url: href,
+            method: "POST",
+            data: {
+                cust_code:  cardcode
+            },
+            beforeSend: function() {
+                doBeforeSend(true)
+            },
+            success: function(result) {
+                if(result.cust_details.cardname != custname){
+                    $("#custname").val(result.cust_details.cardname);
+                }
+            },
+            error: function(jqXHR, testStatus, error) {
+                popToast('error', 'E999 - Terjadi Kesalah Komunikasi Server');
+
+                doBeforeSend(false)
+            },
+            complete: function() {
+                // selesai
+                doBeforeSend(false)
+            },
+            timeout: 8000,
+        });        
+    }
 
     function getPrice(pricelistval){
         let itemcode = $("#kode-item").val();
@@ -222,12 +302,13 @@
                 doBeforeSend(true)
             },
             success:function(data){
-                console.log(data)
-                if(data.status == 'success'){
+                if(data.status == 'success' && data.message != 'Data tidak ditemukan'){
                     $("#price").val(data.data.price);
                     $("#price_show").val(maskRupiah("", data.data.price));
 
                     calcSum();
+                    doBeforeSend(false)
+                } else {
                     doBeforeSend(false)
                 }
             }
@@ -274,6 +355,7 @@
         var subtotal = $("#total").val();
         var pricelist = $("#pricelist").find(":selected").val();
         var custcode = $("#custcode").find(":selected").val();
+        var custname = $("#custname").val();
         var sales = $("#sales").data("id");
 
         $.ajax({
@@ -288,7 +370,8 @@
                 subtotal    : subtotal,
                 pricelist   : pricelist,
                 sales       : sales,
-                custcode    : custcode
+                custcode    : custcode,
+                custname    : custname
             },
             beforeSend: function() {
                 doBeforeSend(true)

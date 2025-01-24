@@ -13,10 +13,10 @@
     <!-- Sidebar user panel (optional) -->
     <div class="user-panel mt-3 pb-3 mb-3 d-flex">
       <div class="image" data-toggle="modal" data-target="#modalUser">
-        <img src="/gambar/user/{{ Auth::id() }}" class="img-circle elevation-2" alt="{{ Auth::user()->name }}">
+        <img src="/gambar/user/{{ Auth::id() }}" class="img-circle elevation-2" alt="{{ Auth::user()->full_name }}">
       </div>
       <div class="info">
-        <a href="#" class="d-block text-capitalize text-light">{{ Auth::user()->name }}</a>
+        <a href="#" class="d-block text-capitalize text-light">{{ Auth::user()->full_name }}</a>
       </div>
     </div>
 
@@ -53,6 +53,12 @@
         </li>
         @endif
         <li class="nav-item">
+          <a href="/sales" class="nav-link @if($nav == 'sales') active text-bold @endif">
+            <i class="nav-icon fas fa-history"></i>
+            <p>History Transaksi</p>
+          </a>
+        </li>
+        <li class="nav-item">
           <a href="/sales/cart" class="nav-link @if($nav == 'cart') active text-bold @endif">
             <i class="nav-icon fas fa-cart-arrow-down"></i>
             <p>Keranjang</p>
@@ -61,6 +67,29 @@
         {{-- data induk --}}
         @if (Helper::checkACL('application', 'r'))
         <li class="nav-header">Pengaturan</li>
+        <li class="nav-item">
+          <a href="#" class="nav-link @if($nav == 'membership') active text-bold @endif">
+            <i class="nav-icon fas fa-users"></i>
+            <p>Keanggotaan <i class="right fas fa-angle-left"></i></p>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              <a href="/keanggotaan" class="nav-link @if($subNav == 'membership.index') active text-bold @endif">
+                <p class="text-capitalize">Data</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="/keanggotaan/history/point" class="nav-link @if($subNav == 'membership.history_point') active text-bold @endif">
+                <p class="text-capitalize">History Poin Member</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="/keanggotaan/settings" class="nav-link @if($subNav == 'membership.setting') active text-bold @endif">
+                <p class="text-capitalize">Pengaturan Member</p>
+              </a>
+            </li>
+          </ul>
+        </li>
         <li class="nav-item @if($nav == 'data-induk') menu-open @endif">
           <a href="#" class="nav-link @if($nav == 'data-induk') active text-bold @endif">
             <i class="nav-icon fas fa-database"></i>
@@ -85,8 +114,7 @@
                 <p class="text-capitalize">docPrefix</p>
               </a>
             </li>
-
-            @if (Helper::checkACL('master_acl', 'r'))
+            {{-- @if (Helper::checkACL('master_acl', 'r'))
             <li class="nav-item">
               <a href="/dataInduk/acl" class="nav-link @if($subNav == 'hakakses') active text-bold @endif">
                 <i class="fas fa-key nav-icon"></i>
@@ -149,7 +177,7 @@
                 <p class="text-capitalize">Chart Of Account</p>
               </a>
             </li>
-            @endif
+            @endif --}}
           </ul>
         </li>
         @endif

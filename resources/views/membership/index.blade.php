@@ -50,15 +50,8 @@
                            </button>
                            <div class="dropdown-menu dropdown-menu-right" role="menu">
                               @if(Helper::checkACL('membership', 'c'))
-                              <a href="#" id="newButton" class="dropdown-item"> <i
+                              <a href="{{ url('keanggotaan/create') }}" id="newButton" class="dropdown-item"> <i
                                     class="fas fa-plus-square"></i>&nbsp; Data Baru</a>
-                              @endif
-                              @if(Helper::checkACL('membership', 'c'))
-                              <a href="#" id="persetujuanButton" class="dropdown-item"> <i
-                                    class="fas fa-plus-square"></i>&nbsp; Persetujuan</a>
-                              @endif
-                              @if(Helper::checkACL('membership', 'i'))
-                              <a href="#" class="dropdown-item"> <i class="fas fa-file-excel"></i> &nbsp; Impor Data</a>
                               @endif
                               <a href="#" class="dropdown-item" data-card-widget="collapse"><i
                                     class="fas fa-search-plus"></i> &nbsp; Tampilkan</a>
@@ -131,25 +124,17 @@
             </form>
 
             <!-- /.Filter Box -->
-            <table id="dTable" class="table table-bordered table-striped table-hover" cellspacing="0" width="100%">
+            <table id="dTable" class="table table-bordered table-sm table-striped table-hover" cellspacing="0" width="100%">
                <thead>
                   <tr align="center">
                      <th> Aksi </th>
                      <th>Kode</th>
                      <th>Nama</th>
                      <th>Nomor HP</th>
-                     <th>Status</th>
-               </thead>
-               </tr>
-               <tfoot>
-                  <tr>
-                     <th class='notexport'></th>
-                     <th>Kode</th>
-                     <th>Nama</th>
-                     <th>Nomor HP</th>
+                     <th>Total Poin</th>
                      <th>Status</th>
                   </tr>
-               </tfoot>
+               </thead>
                <tbody class="tBody">
                </tbody>
             </table>
@@ -240,16 +225,7 @@
                   $("#dTable").DataTable().draw();
                },
             },
-            // {
-            //    extend: 'csv',
-            //    className: 'btn bg-lime btn-sm',
-            //    text: 'CSV',
-            //    exportOptions: {
-            //       columns: [ 1,2,3,4 ]
-            //    },
-            // },
          ],
-
          language: {
             searchPlaceholder: "Pencarian Global ",
             "sLengthMenu": "_MENU_",
@@ -269,21 +245,25 @@
          },
          columns: [
             {data: 'action', name: 'action','orderable':false,'searchable':false},
-            {data: 'code', name: 'memberships.code'},
-            {data: 'nama', name: 'memberships.nama'},
-            {data: 'mobile', name: 'memberships.mobile'},
-            {data: 'status', name: 'memberships.status','orderable':false,'searchable':true}
+            {data: 'member_code', name: 'member_code'},
+            {data: 'full_name', name: 'full_name'},
+            {data: 'nomor_handphone', name: 'nomor_handphone'},
+            {
+                mData: "total_point",
+                className: 'text-center',
+                mRender: function (data, type, row) {
+                    return data+" poin";
+                }
+            },
+            {data: 'status', name: 'status','orderable':false,'searchable':true}
          ],
       });
-
-
 
       //  sumbit filter and redraw
       $('#filterForm').on('submit', function (e) {
          dTable.draw();
          e.preventDefault();
       });
-
 
       //  error handling
       $.fn.dataTable.ext.errMode = function (settings, helpPage, message) {
@@ -330,301 +310,10 @@
          });
       });
 
-
    });
 </script>
 
 <script>
-   // new Data Modal
-   $(document).on('click', '#newButton', function (event) {
-
-      event.preventDefault();
-      let href = '{{ route("keanggotaan.new") }}';
-      $.ajax({
-         url: href,
-         beforeSend: function () {
-            $('#loader').show();
-         },
-         complete: function () {
-            $('#loader').hide();
-         },
-         // return the result
-         success: function (result) {
-            if (result.status === "error") {
-               Swal.fire(
-                  result.status == 'success' ? 'Berhasil !' : 'Gagal !',
-                  result.message,
-                  result.status
-               )
-            } else {
-               $('#modalBlade').modal("show");
-               $('#modalBody').html(result).show();
-
-            }
-         },
-         error: function (jqXHR, testStatus, error) {
-            // console.log(error);
-            alert("Page " + href + " cannot open. Error:" + error);
-            $('#loader').hide();
-         },
-         timeout: 8000
-      })
-   });
-   // ./new Modal
-
-   // persetujuan Modal
-   $(document).on('click', '#persetujuanButton', function (event) {
-      event.preventDefault();
-      let href = '{{ route("keanggotaan.persetujuan") }}';
-      $.ajax({
-         url: href,
-         beforeSend: function () {
-            $('#loader').show();
-         },
-         // return the result
-         success: function (result) {
-            if (result.status === "error") {
-               Swal.fire(
-                  result.status == 'success' ? 'Berhasil !' : 'Gagal !',
-                  result.message,
-                  result.status
-               )
-            } else {
-               $('#modalBlade').modal("show");
-               $('#modalBody').html(result).show();
-
-            }
-         },
-         complete: function () {
-            $('#loader').hide();
-         },
-         error: function (jqXHR, testStatus, error) {
-            // console.log(error);
-            alert("Page " + href + " cannot open. Error:" + error);
-            $('#loader').hide();
-         },
-         timeout: 8000
-      })
-   });   
-   // ./persetujuan Modal
-
-   // kirim Email
-   $(document).on('click', '#emailButton', function (event) {
-      event.preventDefault();
-      $.ajaxSetup({
-         headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-         }
-      });
-      $.ajax({
-         url: "/keanggotaan/email_member",
-         method: "POST",
-         data: {
-            member: $('#member').find(":selected").val(),
-         },
-         beforeSend: function () {
-            $('#loader').show();
-         },
-         // return the result
-         success: function (result) {
-            // console.log(result)
-            if (result.status == 'success') {
-               $('#modalBlade').modal("hide");
-               Swal.fire(
-                  result.status == 'success' ? 'Berhasil !' : 'Gagal !',
-                  result.message,
-                  result.status
-               )
-            } else {
-               Swal.fire(
-                  result.status == 'success' ? 'Berhasil !' : 'Gagal !',
-                  result.message,
-                  result.status
-               )
-            }
-         },
-         complete: function (result) {
-            $('#loader').hide();
-         },
-         error: function (jqXHR, testStatus, error) {
-            // console.log(error)
-            Swal.fire(
-               error.status + ' !',
-               error.message,
-               error.status
-            )
-            $('#loader').hide();
-         },
-         timeout: 8000
-      })
-   });
-   // ./kirim Email
-
-   // edit Data Modal
-   $(document).on('click', '#editButton', function (event) {
-
-      event.preventDefault();
-      let href = $(this).attr('data-attr');
-      $.ajax({
-         url: href,
-         beforeSend: function () {
-            // $('#loader').show();
-         },
-         // return the result
-         success: function (result) {
-            if (result.status === "error") {
-               Swal.fire(
-                  result.status == 'success' ? 'Berhasil !' : 'Gagal !',
-                  result.message,
-                  result.status
-               )
-            } else {
-               $('#modalBlade').modal("show");
-               $('#modalBody').html(result).show();
-            }
-         },
-         complete: function () {
-            // $('#loader').hide();
-         },
-         error: function (jqXHR, testStatus, error) {
-            Swal.fire(
-               error.status + ' !',
-               error.message,
-               error.status
-            )
-            // $('#loader').hide();
-         },
-         timeout: 8000
-      })
-   });
-   // ./edit Modal
-   // store Data Modal
-   $(document).on('click', '#saveButton', function (event) {
-      event.preventDefault();
-      $.ajaxSetup({
-         headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-         }
-      });
-      $.ajax({
-         url: "/keanggotaan/store",
-         method: "POST",
-         data: {
-            nama: $("form#formNew #nama").val(),
-            nik: $("form#formNew #nik").val(),
-            mobile: $("form#formNew #mobile").val(),
-            gender: $("form#formNew #gender").val(),
-            kota: $("form#formNew #kota").val(),
-            provinsi: $("form#formNew #provinsi").val(),
-            email: $("form#formNew #email").val(),
-            place_birth: $("form#formNew #place_birth").val(),
-            date_birth: $("form#formNew #date_birth").val(),
-            status: $("form#formNew #status").val(),
-            address: $("form#formNew #address").val(),
-         },
-         beforeSend: function () {
-            $('#loader').show();
-         },
-         // return the result
-         success: function (result) {
-            var oTable = $('#dTable').dataTable();
-            oTable.fnDraw(false);
-            // console.log(result)
-            if (result.status == 'success') {
-               $('#modalBlade').modal("hide");
-               Swal.fire(
-                  result.status == 'success' ? 'Berhasil !' : 'Gagal !',
-                  result.message,
-                  result.status
-               )
-            } else {
-               Swal.fire(
-                  result.status == 'success' ? 'Berhasil !' : 'Gagal !',
-                  result.message,
-                  result.status
-               )
-            }
-         },
-         complete: function (result) {
-            $('#loader').hide();
-         },
-         error: function (jqXHR, testStatus, error) {
-            // console.log(error)
-            Swal.fire(
-               error.status + ' !',
-               error.message,
-               error.status
-            )
-            $('#loader').hide();
-         },
-         timeout: 8000
-      })
-   });
-   // ./store Data Modal
-   // update Data Modal
-   $(document).on('click', '#updateButton', function (event) {
-      event.preventDefault();
-      $.ajaxSetup({
-         headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-         }
-      });
-      let _id = $(this).attr('data-id');
-      $.ajax({
-         url: "/keanggotaan/update/" + _id,
-         method: "POST",
-         data: {
-            nama: $("form#formUpdate #nama").val(),
-            nik: $("form#formUpdate #nik").val(),
-            mobile: $("form#formUpdate #mobile").val(),
-            gender: $("form#formUpdate #gender").val(),
-            kota: $("form#formUpdate #kota").val(),
-            provinsi: $("form#formUpdate #provinsi").val(),
-            email: $("form#formUpdate #email").val(),
-            place_birth: $("form#formUpdate #place_birth").val(),
-            date_birth: $("form#formUpdate #date_birth").val(),
-            status: $("form#formUpdate #status").val(),
-            address: $("form#formUpdate #address").val(),
-         },
-         beforeSend: function () {
-            $('#loader').show();
-         },
-         // return the result
-         success: function (result) {
-            var oTable = $('#dTable').dataTable();
-            oTable.fnDraw(false);
-            if (result.status == 'success') {
-               $('#modalBlade').modal("hide");
-               Swal.fire(
-                  result.status == 'success' ? 'Berhasil !' : 'Gagal !',
-                  result.message,
-                  result.status
-               )
-            } else {
-               Swal.fire(
-                  result.status == 'success' ? 'Berhasil !' : 'Gagal !',
-                  result.message,
-                  result.status
-               )
-            }
-         },
-         complete: function (result) {
-            $('#loader').hide();
-         },
-         error: function (jqXHR, testStatus, error) {
-            // console.log(error)
-            Swal.fire(
-               error.status + ' !',
-               error.message,
-               error.status
-            )
-            $('#loader').hide();
-         },
-         timeout: 8000
-      })
-   });
-   // ./update Data Modal
-
    // handling disable user
    $(document).ready(function () {
       $.ajaxSetup({

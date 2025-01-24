@@ -20,7 +20,11 @@ class CartControllers extends Controller
             $carts = DB::table('sales_cart')
                     ->leftJoin('users', 'sales_cart.salesid','=','users.id')
                     ->leftJoin('SAPOCRD', 'sales_cart.bussiness_partner','=','SAPOCRD.cardcode')
+                    ->when(auth()->user()->site, function($query){
+                        $query->where('users.site', auth()->user()->site);
+                    })
                     ->select('sales_cart.*', 'SAPOCRD.cardname', 'users.full_name');
+
             return Datatables::of($carts)
                 ->addColumn('action', function ($cart) {
                     // render column action
@@ -31,6 +35,18 @@ class CartControllers extends Controller
                         'stage' => $cart->stage,
                     ]);
                 })
+                ->filter(function ($query) use ($request) {
+                    if ($request->docnum_filter) {
+                        // default column filter
+                        $query->where('sales_cart.docnum', 'like', "%{$request->docnum_filter}%");
+                    }
+                    if ($request->dates_filter) {
+                        // default column filter
+                        $dates = explode(" - ", $request->dates_filter);
+
+                        $query->whereIn('sales_cart.cart_date', $dates);
+                    }
+                })
                 ->rawColumns(['action']) //render raw custom column 
                 ->make(true);
         }
@@ -40,13 +56,19 @@ class CartControllers extends Controller
     {
         $pricelist  = DB::table('SAPOPLN')->get();
         $customer   = DB::table('SAPOCRD')->select('SAPOCRD.*', DB::raw('RIGHT(SAPOCRD.phone, 4) AS phoneCode'))->get();
-        $cart       = DB::table('sales_cart')->where('salesid', Auth::user()->id)->where('store_code', Auth::user()->site)->where('stage', '0')->first();
+        $cart       = DB::table('sales_cart')
+                        ->leftJoin('SAPOCRD', 'sales_cart.bussiness_partner','=','SAPOCRD.cardcode')
+                        ->where('sales_cart.salesid', Auth::user()->id)
+                        ->where('sales_cart.store_code', Auth::user()->site)
+                        ->where('sales_cart.stage', '0')
+                        ->first();
+
         $site       = DB::table('pas_master_store')->get();
 
         if($cart){
             $cartDetails = DB::table('sales_cart_details')
                             ->leftJoin('SAPOPLN','sales_cart_details.pricelist_id','=','SAPOPLN.listnum')
-                            ->where('sales_cart_details.cart_id', $cart->docnum)->get();
+                            ->where('sales_cart_details.tempcode', $cart->tempcode)->get();
         }
 
         $var = [
@@ -64,18 +86,22 @@ class CartControllers extends Controller
     }
 
     public function store(Request $request){
-        $docnum = $request->docnum;
+        $tempcode = $request->tempcode;
         $sales = $request->sales;
         $custcode = $request->custcode;
         $store = ((Auth::user()->site) ? Auth::user()->site : $request->store);
 
         DB::beginTransaction();
         try {
-            if($docnum){
-                $dataCartSales =  DB::table('sales_cart')->where('docnum', $docnum)->where('stage', '1')->first();
+            if($tempcode){
+                $dataCartSales =  DB::table('sales_cart')->where('tempcode', $tempcode)->where('stage', '1')->where('bussiness_partner', $custcode)->first();
                 if($dataCartSales){
                     DB::table('sales_cart_details')->insert([
-                        'cart_id'   => $docnum,
+                        'tempcode'  => $tempcode,
+                        'cart_id'   => $dataCartSales->docnum,
+                        'salesid'   => $sales,
+                        'bussiness_partner' => $custcode,
+                        'bussiness_partner_detail' => $request->custname,
                         'itemcode'  => $request->itemcode,
                         'itemname'  => $request->itemname,
                         'qty'       => $request->qty,
@@ -84,15 +110,19 @@ class CartControllers extends Controller
                         'subtotal'  => $request->subtotal
                     ]);
     
-                    $grandtotal = DB::table('sales_cart_details')->where('cart_id', $docnum)->sum('subtotal');
-                    DB::table('sales_cart')->where('docnum', $docnum)->update([
+                    $grandtotal = DB::table('sales_cart_details')->where('cart_id', $dataCartSales->docnum)->sum('subtotal');
+                    DB::table('sales_cart')->where('docnum', $dataCartSales->docnum)->update([
                         'grandtotal'  => $grandtotal
                     ]);
                 } else {
-                    $dataStage0 = DB::table('sales_cart')->where('store_code', $store)->where('salesid', $sales)->where('bussiness_partner', $custcode)->where('stage', '0')->first();
+                    $dataStage0 = DB::table('sales_cart')->where('tempcode', $tempcode)->where('store_code', $store)->where('salesid', $sales)->where('bussiness_partner', $custcode)->where('stage', '0')->first();
                     if($dataStage0){
                         DB::table('sales_cart_details')->insert([
-                            'cart_id'   => $docnum,
+                            'tempcode'  => $tempcode,
+                            'cart_id'   => $dataStage0->docnum,
+                            'salesid'   => $sales,
+                            'bussiness_partner' => $custcode,
+                            'bussiness_partner_detail' => $request->custname,
                             'itemcode'  => $request->itemcode,
                             'itemname'  => $request->itemname,
                             'qty'       => $request->qty,
@@ -101,8 +131,8 @@ class CartControllers extends Controller
                             'subtotal'  => $request->subtotal
                         ]);
         
-                        $grandtotal = DB::table('sales_cart_details')->where('cart_id', $docnum)->sum('subtotal');
-                        DB::table('sales_cart')->where('docnum', $docnum)->update([
+                        $grandtotal = DB::table('sales_cart_details')->where('cart_id', $dataStage0->docnum)->sum('subtotal');
+                        DB::table('sales_cart')->where('docnum', $dataStage0->docnum)->update([
                             'grandtotal'  => $grandtotal
                         ]);
                     } else {
@@ -120,10 +150,12 @@ class CartControllers extends Controller
                         $docnum = $store.'-'.date('my').''.$new_number;
         
                         DB::table('sales_cart')->insert([
+                            'tempcode'      => $tempcode,
                             'docnum'        => $docnum,
                             'store_code'    => $store,
                             'salesid'       => $sales,
-                            'bussiness_pertner' => $custcode,
+                            'bussiness_partner' => $custcode,
+                            'bussiness_partner_detail' => $request->custname,
                             'grandtotal'    => 0,
                             'cart_date'     => date('Y-m-d'),
                             'created_by'    => Auth::user()->id,
@@ -132,7 +164,11 @@ class CartControllers extends Controller
                         ]);
         
                         DB::table('sales_cart_details')->insert([
+                            'tempcode'  => $tempcode,
                             'cart_id'   => $docnum,
+                            'salesid'   => $sales,
+                            'bussiness_partner' => $custcode,
+                            'bussiness_partner_detail' => $request->custname,
                             'itemcode'  => $request->itemcode,
                             'itemname'  => $request->itemname,
                             'qty'       => $request->qty,
@@ -160,12 +196,16 @@ class CartControllers extends Controller
                 }
     
                 $docnum = $store.'-'.date('my').''.$new_number;
+
+                $tempcode = strtotime("now");
     
                 DB::table('sales_cart')->insert([
+                    'tempcode'      => $tempcode,
                     'docnum'        => $docnum,
                     'store_code'    => $store,
                     'salesid'       => $sales,
                     'bussiness_partner' => $custcode,
+                    'bussiness_partner_detail' => $request->custname,
                     'grandtotal'    => 0,
                     'cart_date'     => date('Y-m-d'),
                     'created_by'    => Auth::user()->id,
@@ -174,7 +214,11 @@ class CartControllers extends Controller
                 ]);
     
                 DB::table('sales_cart_details')->insert([
+                    'tempcode'  => $tempcode,
                     'cart_id'   => $docnum,
+                    'salesid'   => $sales,
+                    'bussiness_partner' => $custcode,
+                    'bussiness_partner_detail' => $request->custname,
                     'itemcode'  => $request->itemcode,
                     'itemname'  => $request->itemname,
                     'qty'       => $request->qty,
@@ -193,7 +237,7 @@ class CartControllers extends Controller
             $response = [
                 "status"    => "success",
                 "message"   => "Data berhasil disimpan",
-                "docnum"    => $docnum
+                "tempcode"  => $tempcode
             ];            
         } catch (\Throwable $th) {
             DB::rollBack();
@@ -201,7 +245,7 @@ class CartControllers extends Controller
             $response = [
                 "status"    => "gagal",
                 "message"   => "Data gagal disimpan ".$th->getMessage(),
-                "docnum"    => 0
+                "tempcode"  => 0
             ];
         }
 
@@ -239,7 +283,7 @@ class CartControllers extends Controller
 
         DB::beginTransaction();
         try {
-            DB::table('sales_cart_details')->insert([
+            DB::table('sales_cart_details')->updateOrInsert(['cart_id' => $docnum, 'itemcode' => $request->itemcode],[
                 'cart_id'   => $docnum,
                 'itemcode'  => $request->itemcode,
                 'itemname'  => $request->itemname,
@@ -275,13 +319,18 @@ class CartControllers extends Controller
     }
 
     public function delete(Request $request){
-        $docnum = $request->docnum;
+        $tempcode = $request->tempcode;
         $itemcode = $request->itemcode;
 
         DB::beginTransaction();
         try {
-            DB::table('sales_cart_details')->where('cart_id', $docnum)->where('itemcode', $itemcode)->delete();
+            DB::table('sales_cart_details')->where('tempcode', $tempcode)->where('itemcode', $itemcode)->delete();
             
+            // $count = DB::table('sales_cart_details')->where('tempcode', $tempcode)->count();
+            // if($count == 0){
+            //     DB::table('sales_cart')->where('tempcode', $tempcode)->delete();
+            // }
+
             DB::commit();
             $response = [
                 "status"    => "success",
@@ -299,10 +348,20 @@ class CartControllers extends Controller
     }
 
     public function commit(Request $request){
-        DB::table('sales_cart')->where('docnum', $request->docnum)->update([
-            'bussiness_partner' => $request->custcode,
-            'stage' => $request->stage
-        ]);
+
+        if($request->tempcode){
+            $data = DB::table('sales_cart')->where('tempcode', $request->tempcode)->where('stage', '0')->get();
+    
+            foreach($data AS $val){
+                DB::table('sales_cart')->where('docnum', $val->docnum)->update([
+                    'stage' => $request->stage
+                ]);
+            }
+        } else {
+            DB::table('sales_cart')->where('docnum', $request->docnum)->update([
+                'stage' => '1'
+            ]);
+        }
 
         $response = [
             "status"    => "success",
@@ -310,6 +369,22 @@ class CartControllers extends Controller
         ];
 
         return response()->json($response);
+    }
+
+    public function autocomplete(Request $request)
+    {
+        $data = DB::table('SAPOITW')->where('whscode', auth()->user()->site)->where('itemcode', 'LIKE', '%'. $request->get('search'). '%')->get();
+
+        $output = '<ul class="dropdown-menu" style="display: revert;position:relative;width:100%;overflow-x: hidden; max-height: 300px;overflow-y: scroll;">';
+        foreach($data as $row)
+        {
+            $output .= '
+                <li id="itemcode_list" type="button" style="border-bottom: 0.2px solid #ebebeb; margin: 10px;">'.$row->itemcode.'</li>
+            ';
+        }
+        $output .= '</ul>';
+
+        return response()->json($output);
     }
 
     public function detailPricelist(Request $request){

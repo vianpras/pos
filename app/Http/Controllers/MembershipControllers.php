@@ -31,9 +31,8 @@ class MembershipControllers extends Controller
     {
         if (Helper::checkACL('membership', 'r')) {
             // render index
-            $category = Helper::forSelect('categories', 'id', 'name', false, false);
 
-            $var = ['nav' => 'membership', 'subNav' => 'membership', 'title' => 'Keanggotaan', 'category' => $category];
+            $var = ['nav' => 'membership', 'subNav' => 'membership', 'title' => 'Keanggotaan'];
             return view('membership.index', $var);
         } else {
             // tidak memiliki otorisasi
@@ -50,20 +49,15 @@ class MembershipControllers extends Controller
         if (Helper::checkACL('membership', 'r')) {
             if ($request->ajax()) {
                 // query data
-                $memberships = DB::table('memberships')
-                    ->select([
-                        'memberships.code as code',
-                        'memberships.nama as nama',
-                        'memberships.mobile as mobile',
-                        'memberships.status as status',
-                    ]);
+                $memberships = DB::table('sales_membership');
+
                 return Datatables::of($memberships)
                     ->addColumn('action', function ($membership) {
                         // render column action
                         return view('membership.action', [
                             'edit_url' => '/',
                             'show_url' => '/',
-                            'id' => $membership->code,
+                            'id' => $membership->id,
                             'status' => $membership->status,
                         ]);
                     })
@@ -71,43 +65,6 @@ class MembershipControllers extends Controller
                         // render column status
                         $_status = Helper::statusBadge($membership->status);
                         return $_status;
-                    })
-
-                    ->filter(function ($query) use ($request) {
-                        if ($request->membership_nama_filter) {
-                            // default column filter
-                            $query->where('memberships.nama', 'like', "%" . $request->membership_nama_filter . "%");
-                        }
-
-                        if ($request->has('membership_code_filter')) {
-                            // default column filter
-                            $query->where('memberships.code', 'like', "%{$request->membership_code_filter}%");
-                        }
-                        if ($request->has('membership_status_filter')) {
-                            if (($request->membership_status_filter) == '-1') {
-                                // default column filter
-                                $query->where('memberships.status', "<=", 3);
-                            } else {
-                                // filtered column
-                                $query->where('memberships.status', 'like', "%" . $request->membership_status_filter . "%");
-                            }
-                        }
-                        if ($request->has('membership_date_filter')) {
-                            if (($request->membership_date_filter) == null) {
-                                // default column filter 1 bulan
-                                $query->where([
-                                    ['memberships.created_at', '>=', Date('Y-m-d', strtotime("-6 months")) . ' 00:00:00'],
-                                    ['memberships.created_at', '<=',  Date('Y-m-d') . ' 59:59:59'],
-                                ]);
-                            } else {
-                                // filtered column
-                                $dateSeparator = explode(" - ", $request->membership_date_filter);
-                                $query->where([
-                                    ['memberships.created_at', '>=', $dateSeparator[0] . ' 00:00:00'],
-                                    ['memberships.created_at', '<=', $dateSeparator[1] . ' 59:59:59'],
-                                ]);
-                            }
-                        }
                     })
                     ->rawColumns(['action', 'status']) //render raw custom column 
                     ->make(true);
@@ -131,7 +88,7 @@ class MembershipControllers extends Controller
     {
         if (Helper::checkACL('membership', 'c')) {
 
-            $var = ['nav' => 'membership', 'subNav' => 'membership', 'title' => 'Tambah Keanggotaan',];
+            $var = ['nav' => 'membership', 'subNav' => 'membership', 'title' => 'Tambah Membership',];
             return view('membership.create', $var);
         } else {
             $result = config('global.errors.E002');
@@ -150,67 +107,34 @@ class MembershipControllers extends Controller
     {
 
         if (Helper::checkACL('membership', 'c')) {
-            // Validation
-            $vMessage = config('global.vMessage'); //get global validation messages
-            $validator = Validator::make($request->all(), [
-                'nama' => 'required|string|min:3|max:255|unique:memberships,nama',
-                'place_birth' => 'required|min:3|max:255',
-                'date_birth' => 'required|min:3|max:255',
-                'kota' => 'required|min:3|max:255',
-                'provinsi' => 'required|min:3|max:255',
-                'email' => 'required|string|min:3|max:255|unique:memberships,email',
-                'mobile' => 'required|string|min:3|max:255|unique:memberships,mobile',
-                'nik' => 'required|string|min:16|max:17|unique:memberships,nik',
-                'email' => 'required|email|max:255|unique:member_logins,email',
-            ], $vMessage);
-            // Valid?
-            $valid = Helper::validationFail($validator);
-            if (!is_null($valid)) {
-                return response()->json($valid); //return if not valid
-            }
             // Query creator
             DB::beginTransaction();
-
             try {
                 $code  = Helper::memberPrefix('memberships');
-                $password = substr(md5(microtime()),26);
-                $member = DB::table('member_logins')
-                ->insertGetId([
-                   'name' => $request->nama,
-                   'username' => $code,
-                   'email' => $request->email,
-                   'mobile' => $request->mobile,
-                   'password' => Hash::make($password),
-                   'status' => 1,
-                //    'users_acls_id' => nu,
-                   'created_at' => Carbon::now(),
+
+                DB::table('sales_membership')->updateOrInsert(['nomor_handphone' => $request->mobile, 'member_category' => $request->member_category],[
+                    'member_category'   => $request->member_category,
+                    'member_code'       => $code,
+                    'full_name'         => $request->nama,
+                    'nomor_handphone'   => $request->mobile,
+                    'jenis_kelamin'     => $request->gender,
+                    'kota'              => $request->kota,
+                    'provinsi'          => $request->provinsi,
+                    'tempat_lahir'      => $request->place_birth,
+                    'tgl_lahir'         => $request->date_birth,
+                    'email'             => $request->email,
+                    'status'            => $request->status,
+                    'alamat'            => $request->address,
+                    'user_created'      => Auth::id(),
+                    'created_at'        => Carbon::now()
                 ]);
 
-                $membership = DB::table('memberships')
-                    ->insert([
-                        'code' => $code,
-                        'nama' => $request->nama,
-                        'nik' => $request->nik,
-                        'mobile' => $request->mobile,
-                        'gender' => $request->gender,
-                        'kota' => $request->kota,
-                        'provinsi' => $request->provinsi,
-                        'email' => $request->email,
-                        'place_birth' => $request->place_birth,
-                        'date_birth' => $request->date_birth,
-                        'status' => $request->status,
-                        'address' => $request->address,
-                        'created_at' => Carbon::now(),
-                        'expired' => '2030-12-31',
-                        'member_logins_id' => $member,
-                        'user_created' => Auth::id(),
-                    ]);
-                    DB::commit();
+                DB::commit();
                 $result = config('global.success.S002');
             } catch (\Throwable $e) {
-                // $result = $e->getMessage();
+                $result = $e->getMessage();
                 DB::rollback();
-                $result = config('global.errors.E010');
+                // $result = config('global.errors.E010');
             }
         } else {
             $result = config('global.errors.E002');
@@ -240,14 +164,12 @@ class MembershipControllers extends Controller
     {
         if (Helper::checkACL('membership', 'r')) {
             try {
-                $data = DB::table('memberships')
-                ->where('code', $code)->first();
+                $data = DB::table('sales_membership')->where('id', $code)->first();
                 if(is_null($data)){
-                    dd($data);
                     $result = config('global.errors.E011');
                     return response()->json($result);
                 } 
-                $var = ['nav' => 'membership', 'subNav' => 'membership', 'title' => 'Edit Keanggotaan ' . $data->code, 'data' => $data];
+                $var = ['nav' => 'membership', 'subNav' => 'membership', 'title' => 'Edit Keanggotaan ' . $data->member_code, 'data' => $data];
             } catch (\Throwable $e) {
                 $result = config('global.errors.E011');
                 return response()->json($e->getMessage());
@@ -267,53 +189,45 @@ class MembershipControllers extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $code)
+    public function update(Request $request)
     {
 
         if (Helper::checkACL('membership', 'u')) {
-            // Validation
-            $vMessage = config('global.vMessage'); //get global validation messages
-            $validator = Validator::make($request->all(), [
-                // 'email' => 'required|string|min:3|max:255|unique:memberships,email,'.$code,
-                // 'mobile' => 'required|string|min:3|max:255|unique:memberships,mobile,'.$code,
-                // 'nik' => 'required|string|min:16|max:17|unique:memberships,nik,'.$code,
-                // 'email' => 'required|email|max:255|unique:users,email,'.$code,
-            ], $vMessage);
-            // Valid?
-            $valid = Helper::validationFail($validator);
-            if (!is_null($valid)) {
-                return response()->json($valid); //return if not valid
-            }
+            $code = $request->member_code;
+
             // Query creator
             DB::beginTransaction();
-
             try {
 
-                DB::table('memberships')
-                    ->where('code', $code)
+                DB::table('sales_membership')->where('member_code', $code)
                     ->update([
-                        'nama' => $request->nama,
-                        'nik' => $request->nik,
-                        'mobile' => $request->mobile,
-                        'gender' => $request->gender,
-                        'kota' => $request->kota,
-                        'provinsi' => $request->provinsi,
-                        'email' => $request->email,
-                        'place_birth' => $request->place_birth,
-                        'date_birth' => $request->date_birth,
-                        'status' => $request->status,
-                        'address' => $request->address,
-                        'expired' => '2030-12-31',
-                        'member_logins_id' => 1,
-                        'updated_at' => Carbon::now(),
-                        'user_updated' => Auth::id(),
+                        'member_category'   => $request->member_category,
+                        'full_name'         => $request->nama,
+                        'nomor_handphone'   => $request->mobile,
+                        'jenis_kelamin'     => $request->gender,
+                        'kota'              => $request->kota,
+                        'provinsi'          => $request->provinsi,
+                        'tempat_lahir'      => $request->place_birth,
+                        'tgl_lahir'         => $request->date_birth,
+                        'email'             => $request->email,
+                        'status'            => $request->status,
+                        'alamat'            => $request->address,
+                        'user_updated'      => Auth::id(),
+                        'updated_at'        => Carbon::now()
                     ]);
                 DB::commit();
 
-                $result = config('global.success.S002');
+                $result = [
+                    'status' => 'success',
+                    'message' => 'Berhasil update member'
+                ];
             } catch (\Throwable $e) {
                 DB::rollback();
-                $result = config('global.errors.E010');
+
+                $result = [
+                    'status' => 'error',
+                    'message' => $e->getMessage()
+                ];
             }
         } else {
             $result = config('global.errors.E002');
@@ -333,26 +247,23 @@ class MembershipControllers extends Controller
         // disable data
         if (Helper::checkACL('membership', 'd')) {
             $id = $request->id;
-            DB::beginTransaction();
 
+            DB::beginTransaction();
             try {
-                $membership = DB::table('memberships')->where('code', $id);
-                $member_login = DB::table('member_logins')->where('username', $id);
+                $membership = DB::table('sales_membership')->where('id', $id);
                 $status = $membership->first()->status;
-                $statusM = $member_login->first()->status;
                 $membership->update(['status' => $status == 'active' ? 'suspend' : 'active']);
-                $member_login->update(['status' => $statusM  ? false : true]);
+
                 $result = config('global.success.S003');
                 DB::commit();
             } catch (QueryException $e) {
                 DB::rollBack();
-                $result = config('global.errors.E009');
+
                 $result = $e->getMessage();
             } catch (\Throwable $e) {
                 DB::rollBack();
-                $result = config('global.errors.E009');
-                $result = $e->getMessage();
 
+                $result = $e->getMessage();
             }
         } else {
             // tidak memiliki otorisasi
@@ -393,6 +304,104 @@ class MembershipControllers extends Controller
         } else {
             $result = config('global.errors.E002');
         }
+
+        return response()->json($result);
+    }
+
+    public function settingMember()
+    {
+        $data_retail = DB::table('sales_membership_setting')->where('member_category', 'retail')->first();
+        $data_grosir = DB::table('sales_membership_setting')->where('member_category', 'grosir')->first();
+
+        $var = ['nav' => 'membership.setting', 'subNav' => 'membership.setting', 'title' => 'Setting Keanggotaan', 'data_retail' => $data_retail, 'data_grosir' => $data_grosir];
+
+        return view('membership.setting', $var);
+    }
+    public function settingMemberStore(Request $request)
+    {
+        DB::beginTransaction();
+        try {
+
+            foreach($request->member_category AS $key => $val){
+                DB::table('sales_membership_setting')->updateOrInsert(["member_category" => $val], [
+                    "member_category"           => $val,
+                    "min_transaksi"             => $request->min_payment[$key],
+                    "poin_per_min_transaksi"    => $request->poin_transaction[$key],
+                    "konversi_per_poin"         => $request->konversi_poin[$key],
+                    "date_exp"                  => $request->date_exp[$key],
+                    "month_exp"                 => $request->month_exp[$key],
+                    "created_by"                => Auth::id(),
+                    "created_at"                => Carbon::now()
+                ]);
+            }
+
+            DB::commit();
+
+            $result = [
+                'status' => 'success'
+            ];
+        } catch (\Throwable $th) {
+            DB::rollBack();
+
+            $result = [
+                'status' => 'error'
+            ];
+        }
+
+        return response()->json($result);
+    }
+
+    public function history()
+    {
+        $var = ['nav' => 'membership_points', 'subNav' => 'membership.history_point', 'title' => 'History Poin Keanggotaan'];
+
+        return view('membership.history', $var);
+    }
+
+    public function historyDatatable(Request $request)
+    {
+        if ($request->ajax()) {
+            // query data
+            $history_point = DB::table('sales_membership_transaction_points')->leftJoin('sales_membership', 'sales_membership_transaction_points.member_id', '=', 'sales_membership.member_code')
+                                ->select('sales_membership_transaction_points.*', 'sales_membership.full_name', 'sales_membership.nomor_handphone');
+
+            return Datatables::of($history_point)
+                ->filter(function ($query) use ($request) {
+                    if($request->membership_name) {
+                        // default column filter
+                        $query->where('sales_membership.full_name', 'LIKE', "%{$request->membership_name}%");
+                    }
+                    if($request->membership_phone) {
+                        // default column filter
+                        $query->where('sales_membership.nomor_handphone', "{$request->membership_phone}");
+                    }
+                })
+                ->make(true);
+        } else {
+            // tidak memiliki otorisasi
+            session()->flash('notifikasi', [
+                "icon" => config('global.errors.E002.status'),
+                "title" => config('global.errors.E002.code'),
+                "message" =>  config('global.errors.E002.message'),
+            ]);
+            return redirect('dashboard');
+        }
+    }
+
+    public function check(Request $request)
+    {
+        $data_member = DB::table('sales_membership')->where('nomor_handphone', $request->phone)->first();
+        $sumPointPlus = DB::table('sales_membership_transaction_points')->where('type', 'masuk')->where('member_id', $data_member->member_code)->sum('point');
+        $sumPointMinus = DB::table('sales_membership_transaction_points')->where('type', 'keluar')->where('member_id', $data_member->member_code)->sum('point');
+
+        $pointPosition = $sumPointPlus - $sumPointMinus;
+
+        $data_member->posisi_point = $pointPosition;
+
+        $result = [
+            'status' => ($data_member) ? 'success' : 'error',
+            'data'  => $data_member
+        ];
 
         return response()->json($result);
     }

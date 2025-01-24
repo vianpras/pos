@@ -5,6 +5,10 @@
     .select2-container{
         width: 100% !important;
     }
+
+    span.select2-selection{
+        height: 2.3rem !important;
+    }
 </style>
 <div class="content-wrapper">
     <section class="content">
@@ -42,15 +46,16 @@
                             </section>
                             @endif
                             <section class="col-xs-6 col-sm-6 col-md-6">
-                                <input type="hidden" id="docnum" name="docnum" value="{{ ($cart) ? $cart->docnum : 0 }}">
+                                <input type="hidden" id="tempcode" name="tempcode" value="{{ ($cart) ? $cart->tempcode : 0 }}">
                                 <div class="form-group">
                                     <label>Kode Item<sup class="text-danger">*</sup></label>
-                                    <div class="input-group">
+                                    <div class="input-group" style="margin-bottom: 1rem;">
                                         <input type="text" class="form-control" id="kode-item" name="kode-item">
                                         <span class="input-group-append">
                                           <button type="button" class="btn btn-info btn-flat" onclick="getItem()"><i class="fa fa-fw fa-search"></i></button>
                                         </span>
                                     </div>
+                                    <div id="codeList">
                                 </div>
                                 <div class="form-group">
                                     <label>Deskripsi</label>
@@ -60,14 +65,20 @@
                                     <label>Sales<sup class="text-danger">*</sup></label>
                                     <input type="text" class="form-control" id="sales" name="sales" value="{{ Auth::user()->full_name }}" data-id ="{{ Auth::user()->id }}" readonly>
                                 </div>
-                                <div class="form-group">
-                                    <label>Business Partner<sup class="text-danger">*</sup></label>
-                                    <select class="form-control form-control-sm select2" name="custcode" id="custcode">
-                                        <option value="" disabled selected hidden>Choose</option>
-                                        @foreach($customer AS $cust)
-                                            <option value="{{ $cust->cardcode }}" {{ (($cart) ? (($cart->bussiness_partner == $cust->cardcode) ? "selected" : "") : "") }}>{{ (($cust->phoneCode) ? $cust->phoneCode : '0000').' | '.$cust->cardname }}</option>
-                                        @endforeach
-                                    </select>
+                                <div class="row">
+                                    <div class="form-group col-sm-6">
+                                        <label>Business Partner<sup class="text-danger">*</sup></label>
+                                        <select class="form-control form-control-sm select2" name="custcode" id="custcode" onchange="setBusinessPartner(this.value)">
+                                            <option value="" disabled selected hidden>Choose</option>
+                                            @foreach($customer AS $cust)
+                                                <option value="{{ $cust->cardcode }}">{{ (($cust->phoneCode) ? $cust->phoneCode : '0000').' | '.$cust->cardname }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="form-group col-sm-6">
+                                        <label>Business Partner Detail</label>
+                                        <input type="text" class="form-control" id="custname" name="custname" placeholder="Bussiness partner detail">
+                                    </div>
                                 </div>
                             </section>
                             <section class="col-xs-6 col-sm-6 col-md-6">
@@ -113,6 +124,8 @@
                         <table class="table table-sm table-bordered" id="table-details">
                             <thead>
                                 <tr>
+                                    <th>Customer</th>
+                                    <th>Customer Detail</th>
                                     <th>Kode Item</th>
                                     <th>Nama Item</th>
                                     <th>Qty</th>
@@ -125,6 +138,8 @@
                                 @if($cart_details)
                                     @foreach($cart_details AS $cd)
                                         <tr>
+                                            <td class="bussiness_partner">{{ $cd->bussiness_partner }}</td>
+                                            <td class="bussiness_partner">{{ $cd->bussiness_partner_detail }}</td>
                                             <td class="kode_item">{{ $cd->itemcode }}</td>
                                             <td>{{ $cd->itemname }}</td>
                                             <td class="text-center">{{ $cd->qty }}</td>
@@ -155,6 +170,41 @@
         headers: {
             "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
         },
+    });
+
+    $("#kode-item").keyup( function(){
+        let input = $(this).val();
+        $.ajax({
+            url: '{{ url("sales/cart/autocomplete") }}',
+            type: 'GET',
+            dataType: "json",
+            data: {
+                search: input
+            },
+            success: function( data ) {
+                console.log(data);
+                if(input != ""){
+                    $('#codeList').fadeIn();  
+                    $('#codeList').html(data);
+                } else {
+                    $('#codeList').fadeOut();
+
+                    $("#deskripsi").val("");
+                    $("#qty").val(0);
+                    $("#price").val(0);
+                    $("#price_show").val(maskRupiah("", 0));
+                    $("#total").val(0);
+                    $("#total_show").val(maskRupiah("", 0));
+                    $("#pricelist").select2().val("").trigger("change");
+                }
+            }
+        });
+    });
+
+    $(document).on('click', '#itemcode_list', function(){  
+        $('#kode-item').val($(this).text()); 
+        $('#codeList').fadeOut();  
+        getItem()
     });
 
     const html5QrCode = new Html5Qrcode("reader");
@@ -207,7 +257,6 @@
                     doBeforeSend(true)
                 },
                 success:function(data){
-                    console.log(data)
                     if(data.status == 'success'){
                         $("#deskripsi").val(data.data.itemname);
 
@@ -225,6 +274,32 @@
         }
     }  
     
+    const setBusinessPartner = (cardcode) => {
+        let href = '{{ route("master.customer.bycode") }}';
+        $.ajax({
+            url: href,
+            method: "POST",
+            data: {
+                cust_code:  cardcode
+            },
+            beforeSend: function() {
+                doBeforeSend(true)
+            },
+            success: function(result) {
+                $("#custname").val(result.cust_details.cardname);
+            },
+            error: function(jqXHR, testStatus, error) {
+                popToast('error', 'E999 - Terjadi Kesalah Komunikasi Server');
+
+                doBeforeSend(false)
+            },
+            complete: function() {
+                // selesai
+                doBeforeSend(false)
+            },
+            timeout: 8000,
+        });        
+    }
 
     function getPrice(pricelistval){
         let itemcode = $("#kode-item").val();
@@ -240,12 +315,14 @@
                 doBeforeSend(true)
             },
             success:function(data){
-                console.log(data)
-                if(data.status == 'success'){
+                
+                if(data.status == 'success' && data.message != 'Data tidak ditemukan'){
                     $("#price").val(data.data.price);
                     $("#price_show").val(maskRupiah("", data.data.price));
 
                     calcSum();
+                    doBeforeSend(false)
+                } else {
                     doBeforeSend(false)
                 }
             }
@@ -263,28 +340,28 @@
 
     $("#table-details").on("click", "#DeleteButton", function() {
         var itemcode = $(this).closest('tr').find('.kode_item').text();
-        let docnum = $("#docnum").val();
+        let tempcode = $("#tempcode").val();
 
         $.ajax({
             type:'POST',
             url:"{{ url('sales/cart/delete') }}",
             data:{
-                docnum:docnum,
+                tempcode:tempcode,
                 itemcode:itemcode
             },
             beforeSend: function() {
                 doBeforeSend(true)
             },
             success:function(data){
-                alert(data.message)
                 doBeforeSend(false)
+                alert(data.message)
             }
         });
         $(this).closest("tr").remove();
     });
 
     function addCart(){
-        let docnum = $("#docnum").val();
+        let tempcode = $("#tempcode").val();
         let itemcode = $("#kode-item").val();
         let itemname = $("#deskripsi").val();
         var qty = $("#qty").val();
@@ -293,13 +370,14 @@
         var store = $("#site").find(":selected").val();
         var pricelist = $("#pricelist").find(":selected").val();
         var custcode = $("#custcode").find(":selected").val();
+        var custname = $("#custname").val();
         var sales = $("#sales").data("id");
 
         $.ajax({
             type:'POST',
             url:"{{ url('sales/cart/store') }}",
             data:{
-                docnum      : docnum,
+                tempcode    : tempcode,
                 store       : store,
                 itemcode    : itemcode,
                 itemname    : itemname,
@@ -309,6 +387,7 @@
                 pricelist   : pricelist,
                 sales       : sales,
                 custcode    : custcode,
+                custname    : custname,
                 stage       : '0'
             },
             beforeSend: function() {
@@ -317,11 +396,13 @@
             success:function(data){
                 console.log(data)
                 if(data.status == "success"){
-                    if(docnum == 0){
-                        $("#docnum").val(data.docnum);
+                    if(tempcode == 0){
+                        $("#tempcode").val(data.tempcode);
                     }
                     $("#bodyTable").append(`
                         <tr>
+                            <td class="customer">`+custcode+`</td>
+                            <td class="customer_detail">`+custname+`</td>
                             <td class="kode_item">`+itemcode+`</td>
                             <td>`+itemname+`</td>
                             <td class="text-center">`+qty+`</td>
@@ -348,15 +429,14 @@
     }
 
     function saveCart() {
-        let docnum = $("#docnum").val();
-        var custcode = $("#custcode").find(":selected").val();
+        let tempcode = $("#tempcode").val();
+        // var custcode = $("#custcode").find(":selected").val();
 
         $.ajax({
             type:'POST',
             url:"{{ url('sales/cart/commit') }}",
             data:{
-                docnum:docnum,
-                custcode:custcode,
+                tempcode:tempcode,
                 stage:'1'
             },
             beforeSend: function() {
